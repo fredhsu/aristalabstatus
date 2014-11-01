@@ -5,6 +5,18 @@ import (
 	"github.com/fredhsu/go-eapi"
 )
 
+type EosNode struct {
+	Hostname      string
+	MgmtIp        string
+	Username      string
+	Password      string
+	Ssl           bool
+	Reachable     bool
+	ConfigCorrect bool
+	Uptime        float64
+	Version       string
+}
+
 func versionFetcher(url string, cmds []string, format string, c chan eapi.JsonRpcResponse) {
 	response := eapi.Call(url, cmds, format)
 	c <- response
@@ -17,20 +29,18 @@ func main() {
 	url3 := "https://admin:admin@bleaf3/command-api/"
 	url4 := "https://admin:admin@bleaf5/command-api/"
 
-	c1 := make(chan eapi.JsonRpcResponse)
-	c2 := make(chan eapi.JsonRpcResponse)
-	c3 := make(chan eapi.JsonRpcResponse)
-	c4 := make(chan eapi.JsonRpcResponse)
-	go versionFetcher(url1, cmds2, "text", c1)
-	go versionFetcher(url2, cmds2, "text", c2)
-	go versionFetcher(url3, cmds2, "text", c3)
-	go versionFetcher(url4, cmds2, "text", c4)
-	msg1 := <-c1
-	msg2 := <-c2
-	msg3 := <-c3
-	msg4 := <-c4
+	c := make(chan eapi.JsonRpcResponse)
+	go versionFetcher(url1, cmds2, "text", c)
+	go versionFetcher(url2, cmds2, "text", c)
+	go versionFetcher(url3, cmds2, "text", c)
+	go versionFetcher(url4, cmds2, "text", c)
+	msg1 := <-c
+	msg2 := <-c
+	msg3 := <-c
+	msg4 := <-c
 	fmt.Println(msg1)
 	fmt.Println(msg2)
 	fmt.Println(msg3)
 	fmt.Println(msg4)
+	// Write these to files
 }

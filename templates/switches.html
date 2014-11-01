@@ -1,0 +1,28 @@
+<h1>switches</h1>
+<div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Switch</th>
+          <th>Mgmt IP</th>
+          <th>Reachable</th>
+          <th>Config</th>
+          <th>Uptime</th>
+          <th>Version</th>
+        </tr>
+        </thead>
+        <tbody>
+
+        {{range $index, $switch := .}}
+        <tr>
+            <td>{{$switch.Hostname}}</td>
+            <td>{{$switch.MgmtIp}}</td>
+            <td>{{$switch.Reachable}}</td>
+            <td>{{$switch.ConfigCorrect}}</td>
+            <td>{{$switch.Uptime}}</td>
+            <td>{{$switch.Version}}</td>
+        </tr>
+        {{end}}
+        </tbody>
+</table>
+</div>
