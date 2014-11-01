@@ -41,15 +41,23 @@ func writeConfig(path string, n EosNode, config string) {
 	fmt.Println("wrote to ", filename)
 }
 
-func main() {
-	file, _ := os.Open("switches.json")
-	decoder := json.NewDecoder(file)
-	switches := []EosNode{}
-	err := decoder.Decode(&switches)
+func readSwitches(filename string) []EosNode {
+	var switches []EosNode
 
+	file, err := os.Open("switches.json")
 	if err != nil {
-		fmt.Println("error:", err)
+		panic(err)
 	}
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&switches)
+	if err != nil {
+		panic(err)
+	}
+	return switches
+}
+
+func main() {
+	switches := readSwitches("switches.json")
 	cmds2 := []string{"enable", "show running-config"}
 	c := make(chan ChanResponse)
 
