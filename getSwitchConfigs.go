@@ -28,6 +28,7 @@ type ChanResponse struct {
 func versionFetcher(url string, cmds []string, format string, n EosNode,
 	c chan ChanResponse) {
 	response := eapi.Call(url, cmds, format)
+	writeConfig("/Users/fredlhsu/baseconfigs/", n, response.Result[1]["output"].(string))
 	c <- ChanResponse{response, n}
 }
 
@@ -64,7 +65,6 @@ func main() {
 	}
 
 	for i := 0; i < len(switches); i++ {
-		msg1 := <-c
-		writeConfig("/Users/fredlhsu/baseconfigs/", msg1.node, (msg1.response.Result[1]["output"]).(string))
+		<-c
 	}
 }
