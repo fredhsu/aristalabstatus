@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/fredhsu/go-eapi"
 	"io/ioutil"
@@ -25,10 +26,10 @@ type ChanResponse struct {
 	node     EosNode
 }
 
-func versionFetcher(url string, cmds []string, format string, n EosNode,
-	c chan ChanResponse) {
-	response := eapi.Call(url, cmds, format)
-	writeConfig("/Users/fredlhsu/baseconfigs/", n, response.Result[1]["output"].(string))
+func configFetcher(url string, n EosNode, path string, c chan ChanResponse) {
+	cmds := []string{"enable", "show running-config"}
+	response := eapi.Call(url, cmds, "text")
+	writeConfig(path, n, response.Result[1]["output"].(string))
 	c <- ChanResponse{response, n}
 }
 
@@ -56,20 +57,35 @@ func readSwitches(filename string) []EosNode {
 	return switches
 }
 
+func genSwitches(nodes []EosNode) <-chan EosNode {
+	out := make(chan EosNode)
+	go func() {
+		for _, node := range nodes {
+			out <- node
+		}
+		close(out)
+	}()
+	return out
+}
+
 func main() {
+	swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
+	pathPtr := flag.String("path", "/Users/fredlhsu/baseconfigs", "a directory to store the configs")
+	flag.Parse() // command-line flag parsing
+	fmt.Println(*swFilePtr)
+	fmt.Println(*pathPtr)
 	switches := readSwitches("switches.json")
-	cmds2 := []string{"enable", "show running-config"}
+	path := "/Users/fredlhsu/baseconfigs/"
 	c := make(chan ChanResponse)
 
 	for _, node := range switches {
 		prefix := "http"
-
 		if node.Ssl == true {
 			prefix = prefix + "s"
 		}
 		url := prefix + "://" + node.Username + ":" + node.Password + "@" + node.Hostname + "/command-api"
 		fmt.Println(url)
-		go versionFetcher(url, cmds2, "text", node, c)
+		go configFetcher(url, node, path, c)
 	}
 
 	for i := 0; i < len(switches); i++ {
