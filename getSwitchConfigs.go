@@ -68,14 +68,38 @@ func genSwitches(nodes []EosNode) <-chan EosNode {
 	return out
 }
 
+func buildUrl(node EosNode) string {
+		prefix := "http"
+		if node.Ssl == true {
+			prefix = prefix + "s"
+		}
+		url := prefix + "://" + node.Username + ":" + node.Password + "@" + node.Hostname + "/command-api"
+        return url
+    }
+
+func getConfigs(in <-chan EosNode, path string) <-chan ChanResponse {
+    out := make(chan ChanResponse)
+    go func() {
+        for  n := range in {
+	        cmds := []string{"enable", "show running-config"}
+            url := buildUrl(n)
+	        response := eapi.Call(url, cmds, "text")
+	        writeConfig(path, n, response.Result[1]["output"].(string))
+	        out <- ChanResponse{response, n}
+        }
+        close(out)
+    }()
+    return out
+}
+
 func main() {
 	swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
-	pathPtr := flag.String("path", "/Users/fredlhsu/baseconfigs", "a directory to store the configs")
+	pathPtr := flag.String("path", "./baseconfigs", "a directory to store the configs")
 	flag.Parse() // command-line flag parsing
 	fmt.Println(*swFilePtr)
 	fmt.Println(*pathPtr)
 	switches := readSwitches("switches.json")
-	path := "/Users/fredlhsu/baseconfigs/"
+	path := "./baseconfigs/"
 	c := make(chan ChanResponse)
 
 	for _, node := range switches {
@@ -91,4 +115,12 @@ func main() {
 	for i := 0; i < len(switches); i++ {
 		<-c
 	}
+    /*
+    c1 := genSwitches(switches)
+    out := getConfigs(c1, path)
+	for i := 0; i < len(switches); i++ {
+		fmt.Println(<-out)
+	}
+    */
+
 }
