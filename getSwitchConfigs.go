@@ -19,6 +19,7 @@ type EosNode struct {
 	ConfigCorrect bool
 	Uptime        float64
 	Version       string
+	Config        string
 }
 
 type ChanResponse struct {
@@ -29,11 +30,11 @@ type ChanResponse struct {
 func configFetcher(url string, n EosNode, path string, c chan ChanResponse) {
 	cmds := []string{"enable", "show running-config"}
 	response := eapi.Call(url, cmds, "text")
-	writeConfig(path, n, response.Result[1]["output"].(string))
+	writeConfigFile(path, n, response.Result[1]["output"].(string))
 	c <- ChanResponse{response, n}
 }
 
-func writeConfig(path string, n EosNode, config string) {
+func writeConfigFile(path string, n EosNode, config string) {
 	filename := path + n.Hostname + ".eos"
 	err := ioutil.WriteFile(filename, []byte(config), 0644)
 	if err != nil {
@@ -69,27 +70,45 @@ func genSwitches(nodes []EosNode) <-chan EosNode {
 }
 
 func buildUrl(node EosNode) string {
-		prefix := "http"
-		if node.Ssl == true {
-			prefix = prefix + "s"
-		}
-		url := prefix + "://" + node.Username + ":" + node.Password + "@" + node.Hostname + "/command-api"
-        return url
-    }
+	prefix := "http"
+	if node.Ssl == true {
+		prefix = prefix + "s"
+	}
+	url := prefix + "://" + node.Username + ":" + node.Password + "@" + node.Hostname + "/command-api"
+	return url
+}
 
-func getConfigs(in <-chan EosNode, path string) <-chan ChanResponse {
-    out := make(chan ChanResponse)
-    go func() {
-        for  n := range in {
-	        cmds := []string{"enable", "show running-config"}
-            url := buildUrl(n)
-	        response := eapi.Call(url, cmds, "text")
-	        writeConfig(path, n, response.Result[1]["output"].(string))
-	        out <- ChanResponse{response, n}
-        }
-        close(out)
-    }()
-    return out
+func getConfigs(in <-chan EosNode, path string) <-chan EosNode {
+	out := make(chan EosNode)
+	go func() {
+		for n := range in {
+			cmds := []string{"enable", "show running-config"}
+			url := buildUrl(n)
+			response := eapi.Call(url, cmds, "text")
+			config := response.Result[1]["output"].(string)
+			writeConfigFile(path, n, config)
+			n.Config = config
+			out <- n
+		}
+		close(out)
+	}()
+	return out
+}
+
+func getVersion(in <-chan EosNode, path string) <-chan EosNode {
+	out := make(chan EosNode)
+	go func() {
+		for n := range in {
+			cmds := []string{"show version"}
+			url := buildUrl(n)
+			response := eapi.Call(url, cmds, "json")
+			version := response.Result[0]["version"].(string)
+			n.Version = version
+			out <- n
+		}
+		close(out)
+	}()
+	return out
 }
 
 func main() {
@@ -100,27 +119,26 @@ func main() {
 	fmt.Println(*pathPtr)
 	switches := readSwitches("switches.json")
 	path := "./baseconfigs/"
-	c := make(chan ChanResponse)
+	// c := make(chan ChanResponse)
 
-	for _, node := range switches {
-		prefix := "http"
-		if node.Ssl == true {
-			prefix = prefix + "s"
-		}
-		url := prefix + "://" + node.Username + ":" + node.Password + "@" + node.Hostname + "/command-api"
-		fmt.Println(url)
-		go configFetcher(url, node, path, c)
-	}
+	// for _, node := range switches {
+	// 	prefix := "http"
+	// 	if node.Ssl == true {
+	// 		prefix = prefix + "s"
+	// 	}
+	// 	url := prefix + "://" + node.Username + ":" + node.Password + "@" + node.Hostname + "/command-api"
+	// 	fmt.Println(url)
+	// 	go configFetcher(url, node, path, c)
+	// }
 
-	for i := 0; i < len(switches); i++ {
-		<-c
-	}
-    /*
-    c1 := genSwitches(switches)
-    out := getConfigs(c1, path)
+	// for i := 0; i < len(switches); i++ {
+	// 	<-c
+	// }
+	fmt.Println("############# Using Pipelines ###################")
+	c1 := genSwitches(switches)
+	out := getConfigs(c1, path)
 	for i := 0; i < len(switches); i++ {
 		fmt.Println(<-out)
 	}
-    */
 
 }
