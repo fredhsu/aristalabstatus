@@ -12,6 +12,7 @@ import (
 
 type EosNode struct {
 	Hostname      string
+    ModelName   string
 	MgmtIp        string
 	Username      string
 	Password      string
@@ -24,7 +25,19 @@ type EosNode struct {
 	IntfConnected []string
 	IpIntf        []string
 	Vlans         []string
+    // LldpNeighbors   []string
+    LldpNeighbors   []eapi.LldpNeighbor
 }
+
+// type LldpNeighbor struct {
+//                 "ttl": 120,
+//                "neighborDevice": "bleaf1.aristanetworks.com",
+//                "neighborPort": "Ethernet1",
+//                "port": "Ethernet1"
+//     Port string
+//     NeighborDevice string
+
+// }
 
 type ChanResponse struct {
 	response eapi.JsonRpcResponse
@@ -98,8 +111,9 @@ func getVersion(in <-chan EosNode) <-chan EosNode {
 			cmds := []string{"show version"}
 			url := buildUrl(n)
 			response := eapi.Call(url, cmds, "json")
-			version := response.Result[0]["version"].(string)
-			n.Version = version
+            result := response.Result[0]
+			n.Version = result["version"].(string)
+            n.ModelName = result["modelName"].(string)
 			out <- n
 		}
 		close(out)
@@ -143,12 +157,44 @@ func getIpInterfaces(in <-chan EosNode) <-chan EosNode {
 	return out
 }
 
+func getLldpNeighbors(in <-chan EosNode) <-chan EosNode {
+    out := make(chan EosNode)
+    go func() {
+        for n := range in {
+            cmds := []string{"show lldp neighbors"}
+            data := eapi.RawCall(buildUrl(n), cmds, "json")
+            var jsonresp map[string][]json.RawMessage
+            err := json.Unmarshal(data, &jsonresp)
+            if err != nil {
+                fmt.Print("Json error")
+            }
+            var v eapi.ShowLldpNeighbors
+            // var jsonresp2 []json.RawMessage
+
+            json.Unmarshal(jsonresp["result"][0], &v)
+            // fmt.Println(jsonresp2)
+            // fmt.Println(jsonresp["result"])
+            // fmt.Println(v)
+            n.LldpNeighbors = v.LldpNeighbors
+            // neighbors := (response.Result[0]["lldpNeighbors"]).([]interface{})
+            // for _, neigh := range neighbors {
+            //     i := neigh.(map[string]interface {})
+            //     n.LldpNeighbors = append(n.LldpNeighbors, i["neighborDevice"].(string))
+            // }
+            out <- n
+        }
+        close(out)
+    }()
+    return out
+}
+
 func switchesHandler(w http.ResponseWriter, r *http.Request) {
 	switches := readSwitches("switches.json")
 	c1 := genSwitches(switches)
 	c2 := getVersion(c1)
-	c2 = getIntfConnected(c2)
-	c2 = getIpInterfaces(c2)
+    c2 = getLldpNeighbors(c2)
+	// c2 = getIntfConnected(c2)
+	// c2 = getIpInterfaces(c2)
 	output := []EosNode{}
 	for i := 0; i < len(switches); i++ {
 		node := <-c2
@@ -165,20 +211,20 @@ func switchesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
+	// swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
 	flag.Parse() // command-line flag parsing
-	switches := readSwitches(*swFilePtr)
+	// switches := readSwitches(*swFilePtr)
 
 	fmt.Println("############# Using Pipelines ###################")
-	c1 := genSwitches(switches)
-	c2 := getConfigs(c1)
-	c3 := getVersion(c2)
-	out := getIntfConnected(c3)
-	for i := 0; i < len(switches); i++ {
-		node := <-out
-		fmt.Print(node.Hostname + ": ")
-		fmt.Println(node.IntfConnected)
-	}
+	// c1 := genSwitches(switches)
+	// c2 := getConfigs(c1)
+	// c3 := getVersion(c2)
+	// out := getIntfConnected(c3)
+	// for i := 0; i < len(switches); i++ {
+	// 	node := <-out
+	// 	fmt.Print(node.Hostname + ": ")
+	// 	fmt.Println(node.IntfConnected)
+	// }
 	http.HandleFunc("/switches/", switchesHandler)
 	http.ListenAndServe(":8081", nil)
 }
