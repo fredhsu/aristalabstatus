@@ -26,11 +26,6 @@ type EosNode struct {
 	Vlans         []string
 }
 
-type ChanResponse struct {
-	response eapi.JsonRpcResponse
-	node     EosNode
-}
-
 func writeConfigFile(path string, n EosNode, config string) {
 	filename := path + n.Hostname + ".eos"
 	err := ioutil.WriteFile(filename, []byte(config), 0644)
