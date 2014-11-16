@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+
+    //Width and height
+    var w = 400;
+    var h = 400;
+
+    //Data
+    var nodes = [{x: 30, y: 50},
+    {x: 130, y: 80},
+    {x: 230, y: 120}];
+
+    var links = [
+        {source: nodes[0], target: nodes[1]},
+        {source: nodes[2], target: nodes[1]}
+    ];
+
+    //Create SVG element
+    var svg = d3.select("body")
+                .append("svg")
+                .attr("width", w)
+                .attr("height", h);
+
+    var circles = svg.selectAll("switch.nodes")
+                     .data(nodes)
+                     .enter()
+                     .append("rect")
+                     .attr("x", function(d) { return d.x; })
+                     .attr("y", function(d) { return d.y; })
+                     .attr("rx", 10)
+                     .attr("ry", 10)
+                     .attr("width", 100)
+                     .attr("height", 100)
+                     .attr("stroke", "black")
+                     .attr("stroke-width",5)
+                     .attr("opacity", 0.5)
+                     .attr("fill", "blue");
+
+
+</script>

@@ -1,29 +1,18 @@
 package main
 
 import (
-	// "fmt"
-	"errors"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/fredhsu/go-eapi"
-	"html/template"
 	"io/ioutil"
 	"net/http"
-	"regexp"
-	//"net"
-	// "log"
-	// "github.com/spf13/viper"
-	"encoding/json"
-	"fmt"
 	"os"
 )
 
-type Page struct {
-	Title string
-	Body  []byte
-}
-
 type EosNode struct {
 	Hostname      string
+    ModelName   string
 	MgmtIp        string
 	Username      string
 	Password      string
@@ -32,137 +21,210 @@ type EosNode struct {
 	ConfigCorrect bool
 	Uptime        float64
 	Version       string
+	Config        string
+	IntfConnected []string
+	IpIntf        []string
+	Vlans         []string
+    // LldpNeighbors   []string
+    LldpNeighbors   []eapi.LldpNeighbor
 }
 
-var templates = template.Must(template.ParseFiles("templates/switches.html"))
-var validPath = regexp.MustCompile("^/(edit|save|view|switches)/([a-zA-Z0-9]+)$")
+// type LldpNeighbor struct {
+//                 "ttl": 120,
+//                "neighborDevice": "bleaf1.aristanetworks.com",
+//                "neighborPort": "Ethernet1",
+//                "port": "Ethernet1"
+//     Port string
+//     NeighborDevice string
 
-//func fetchVersion(switches []EosNode) {
-func fetchConfig(switches EosNode) eapi.JsonRpcResponse {
-	c := make(chan eapi.JsonRpcResponse)
-	cmds := []string{"enable", "show running-config"}
+// }
+
+type ChanResponse struct {
+	response eapi.JsonRpcResponse
+	node     EosNode
+}
+
+func writeConfigFile(path string, n EosNode, config string) {
+	filename := path + n.Hostname + ".eos"
+	err := ioutil.WriteFile(filename, []byte(config), 0644)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("wrote to ", filename)
+}
+
+func readSwitches(filename string) []EosNode {
+	var switches []EosNode
+
+	file, err := os.Open("switches.json")
+	if err != nil {
+		panic(err)
+	}
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&switches)
+	if err != nil {
+		panic(err)
+	}
+	return switches
+}
+
+func genSwitches(nodes []EosNode) <-chan EosNode {
+	out := make(chan EosNode)
+	go func() {
+		for _, node := range nodes {
+			out <- node
+		}
+		close(out)
+	}()
+	return out
+}
+
+func buildUrl(node EosNode) string {
 	prefix := "http"
-	if switches.Ssl == true {
+	if node.Ssl == true {
 		prefix = prefix + "s"
 	}
-	url := prefix + "://" + switches.Username + ":" + switches.Password + "@" + switches.Hostname + "/command-api"
-
-	go capiFetch(url, cmds, "text", c)
-	// get responses need to do for each switch
-	msg := <-c
-	return msg
+	url := prefix + "://" + node.Username + ":" + node.Password + "@" + node.Hostname + "/command-api"
+	return url
 }
 
-func capiFetch(url string, cmds []string, format string, c chan eapi.JsonRpcResponse) {
-	response := eapi.Call(url, cmds, format)
-	c <- response
-}
-
-func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
-	m := validPath.FindStringSubmatch(r.URL.Path)
-	if m == nil {
-		http.NotFound(w, r)
-		return "", errors.New("Invalid Page Title")
-	}
-	return m[2], nil // Title is the second subexp
-}
-
-func (p *Page) save() error {
-	filename := p.Title + ".txt"
-	return ioutil.WriteFile(filename, p.Body, 0600)
-}
-
-func loadPage(title string) (*Page, error) {
-	filename := title + ".txt"
-	body, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	return &Page{Title: title, Body: body}, nil
-}
-
-func editHandler(w http.ResponseWriter, r *http.Request, title string) {
-	p, err := loadPage(title)
-	if err != nil {
-		p = &Page{Title: title}
-	}
-	renderTemplate(w, "edit", p)
-}
-
-func viewHandler(w http.ResponseWriter, r *http.Request) {
-	title := r.URL.Path[len("/view/"):]
-	p, _ := loadPage(title) // title = filename (i.e. view.txt), body = text
-	renderTemplate(w, "view", p)
-}
-
-func switchesViewHandler(w http.ResponseWriter, r *http.Request) {
-
-	file, _ := os.Open("switches.json")
-	decoder := json.NewDecoder(file)
-	switches := []EosNode{}
-	err := decoder.Decode(&switches)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	response := eapi.Call("https://admin:admin@bleaf1/command-api/", []string{"show version"}, "json")
-
-	version := response.Result[0]["version"]
-	switches[0].Version = version.(string)
-	// switches := []EosNode{EosNode{
-	// 	Hostname:      "bleaf4",
-	// 	Username:      "admin",
-	// 	Password:      "admin",
-	// 	Ssl:           true,
-	// 	MgmtIp:        "1.1.1.1",
-	// 	Reachable:     true,
-	// 	ConfigCorrect: true,
-	// 	Uptime:        0}}
-	err = templates.ExecuteTemplate(w, "switches.html", switches)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-	err := templates.ExecuteTemplate(w, tmpl+".html", p)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		m := validPath.FindStringSubmatch(r.URL.Path)
-		if m == nil {
-			http.NotFound(w, r)
-			return
+func getConfigs(in <-chan EosNode) <-chan EosNode {
+	out := make(chan EosNode)
+	go func() {
+		for n := range in {
+			cmds := []string{"enable", "show running-config"}
+			url := buildUrl(n)
+			response := eapi.Call(url, cmds, "text")
+			config := response.Result[1]["output"].(string)
+			n.Config = config
+			out <- n
 		}
-		fn(w, r, m[2])
+		close(out)
+	}()
+	return out
+}
+
+func getVersion(in <-chan EosNode) <-chan EosNode {
+	out := make(chan EosNode)
+	go func() {
+		for n := range in {
+			cmds := []string{"show version"}
+			url := buildUrl(n)
+			response := eapi.Call(url, cmds, "json")
+            result := response.Result[0]
+			n.Version = result["version"].(string)
+            n.ModelName = result["modelName"].(string)
+			out <- n
+		}
+		close(out)
+	}()
+	return out
+}
+
+func getIntfConnected(in <-chan EosNode) <-chan EosNode {
+	out := make(chan EosNode)
+	go func() {
+		for n := range in {
+			cmds := []string{"show interfaces status connected"}
+			url := buildUrl(n)
+			response := eapi.Call(url, cmds, "json")
+			statuses := response.Result[0]["interfaceStatuses"].(map[string]interface{})
+			for status := range statuses {
+				n.IntfConnected = append(n.IntfConnected, status)
+			}
+			out <- n
+		}
+		close(out)
+	}()
+	return out
+}
+
+func getIpInterfaces(in <-chan EosNode) <-chan EosNode {
+	out := make(chan EosNode)
+	go func() {
+		for n := range in {
+			cmds := []string{"show ip interface"}
+			url := buildUrl(n)
+			response := eapi.Call(url, cmds, "json")
+			intfs := response.Result[0]["interfaces"].(map[string]interface{})
+			for intf := range intfs {
+				n.IntfConnected = append(n.IntfConnected, intf)
+			}
+			out <- n
+		}
+		close(out)
+	}()
+	return out
+}
+
+func getLldpNeighbors(in <-chan EosNode) <-chan EosNode {
+    out := make(chan EosNode)
+    go func() {
+        for n := range in {
+            cmds := []string{"show lldp neighbors"}
+            data := eapi.RawCall(buildUrl(n), cmds, "json")
+            var jsonresp map[string][]json.RawMessage
+            err := json.Unmarshal(data, &jsonresp)
+            if err != nil {
+                fmt.Print("Json error")
+            }
+            var v eapi.ShowLldpNeighbors
+            // var jsonresp2 []json.RawMessage
+
+            json.Unmarshal(jsonresp["result"][0], &v)
+            // fmt.Println(jsonresp2)
+            // fmt.Println(jsonresp["result"])
+            // fmt.Println(v)
+            n.LldpNeighbors = v.LldpNeighbors
+            // neighbors := (response.Result[0]["lldpNeighbors"]).([]interface{})
+            // for _, neigh := range neighbors {
+            //     i := neigh.(map[string]interface {})
+            //     n.LldpNeighbors = append(n.LldpNeighbors, i["neighborDevice"].(string))
+            // }
+            out <- n
+        }
+        close(out)
+    }()
+    return out
+}
+
+func switchesHandler(w http.ResponseWriter, r *http.Request) {
+	switches := readSwitches("switches.json")
+	c1 := genSwitches(switches)
+	c2 := getVersion(c1)
+    c2 = getLldpNeighbors(c2)
+	// c2 = getIntfConnected(c2)
+	// c2 = getIpInterfaces(c2)
+	output := []EosNode{}
+	for i := 0; i < len(switches); i++ {
+		node := <-c2
+		fmt.Println(node)
+		output = append(output, node)
 	}
+
+	b, err := json.Marshal(output)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Fprintf(w, string(b))
 }
 
 func main() {
+	// swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
 	flag.Parse() // command-line flag parsing
-	http.HandleFunc("/switches/", switchesViewHandler)
-	// http.HandleFunc("/edit/", makeHandler(editHandler))
-	// http.HandleFunc("/save/", makeHandler(saveHandler))
-	/*
-	   if *addr {
-	       l, err := net.Listen("tcp", "127.0.0.1:0")
-	       if err != nil {
-	           log.Fatal(err)
-	       }
-	       err = ioutil.WriteFile("final-port.txt", []byte(l.Addr().String()), 0644)
-	       if err != nil {
-	           log.Fatal(err)
-	       }
-	       s := &http.Server{}
-	       s.Serve(l)
-	       return
-	   }
-	*/
-	http.ListenAndServe(":8081", nil)
+	// switches := readSwitches(*swFilePtr)
 
+	fmt.Println("############# Using Pipelines ###################")
+	// c1 := genSwitches(switches)
+	// c2 := getConfigs(c1)
+	// c3 := getVersion(c2)
+	// out := getIntfConnected(c3)
+	// for i := 0; i < len(switches); i++ {
+	// 	node := <-out
+	// 	fmt.Print(node.Hostname + ": ")
+	// 	fmt.Println(node.IntfConnected)
+	// }
+	http.HandleFunc("/switches/", switchesHandler)
+	http.ListenAndServe(":8081", nil)
 }

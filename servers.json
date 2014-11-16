@@ -1,0 +1,72 @@
+[
+{
+    "Hostname": "bspine1",
+    "Username": "admin",
+    "Password": "admin",
+    "Ssl": true,
+    "MgmtIp": "1.1.1.1",
+    "Reachable": true,
+    "ConfigCorrect": true,
+    "Uptime": 0
+},
+{
+    "Hostname": "bspine2",
+    "Username": "fredlhsu",
+    "Password": "arista",
+    "Ssl": true,
+    "MgmtIp": "172.28.171.98",
+    "Reachable": true,
+    "ConfigCorrect": true,
+    "Uptime": 0
+},
+{
+    "Hostname": "bleaf1",
+    "Username": "admin",
+    "Password": "admin",
+    "Ssl": true,
+    "MgmtIp": "1.1.1.1",
+    "Reachable": true,
+    "ConfigCorrect": true,
+    "Uptime": 0
+},
+{
+    "Hostname": "bleaf2",
+    "Username": "admin",
+    "Password": "admin",
+    "Ssl": true,
+    "MgmtIp": "1.1.1.1",
+    "Reachable": true,
+    "ConfigCorrect": true,
+    "Uptime": 0
+},
+{
+    "Hostname": "bleaf3",
+    "Username": "admin",
+    "Password": "admin",
+    "Ssl": true,
+    "MgmtIp": "1.1.1.1",
+    "Reachable": true,
+    "ConfigCorrect": true,
+    "Uptime": 0
+},
+{
+    "Hostname": "bleaf5",
+    "Username": "admin",
+    "Password": "admin",
+    "Ssl": true,
+    "MgmtIp": "1.1.1.1",
+    "Reachable": true,
+    "ConfigCorrect": true,
+    "Uptime": 0
+},
+{
+    "Hostname": "bleaf6",
+    "Username": "admin",
+    "Password": "admin",
+    "Ssl": true,
+    "MgmtIp": "1.1.1.1",
+    "Reachable": true,
+    "ConfigCorrect": true,
+    "Uptime": 0
+}
+]
