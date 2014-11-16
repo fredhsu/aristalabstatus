@@ -22,14 +22,6 @@ type EosNode struct {
 	Config        string
 }
 
-func writeConfigFile(path string, n EosNode, config string) {
-	filename := path + n.Hostname + ".eos"
-	err := ioutil.WriteFile(filename, []byte(config), 0644)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("wrote to ", filename)
-}
 
 func readSwitches(filename string) []EosNode {
 	var switches []EosNode
@@ -99,13 +91,7 @@ func getVersion(in <-chan EosNode) <-chan EosNode {
 }
 
 func main() {
-	// swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
-	// pathPtr := flag.String("path", "./baseconfigs", "a directory to store the configs")
-	// flag.Parse() // command-line flag parsing
-	// fmt.Println(*swFilePtr)
-	// fmt.Println(*pathPtr)
 	switches := readSwitches("switches.json")
-	// path := "./baseconfigs/"
 
 	fmt.Println("############# Using Pipelines ###################")
 	c1 := genSwitches(switches)
