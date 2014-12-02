@@ -1,0 +1,12 @@
+[
+{
+    "Hostname": "192.168.56.100",
+    "Username": "admin",
+    "Password": "admin",
+    "Ssl": true,
+    "MgmtIp": "1.1.1.1",
+    "Reachable": true,
+    "ConfigCorrect": true,
+    "Uptime": 0
+}
+]

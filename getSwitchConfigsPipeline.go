@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/fredhsu/go-eapi"
 	"io/ioutil"
+	"net/http"
 	"os"
-    "net/http"
 )
 
 type EosNode struct {
@@ -25,7 +25,6 @@ type EosNode struct {
 	IpIntf        []string
 	Vlans         []string
 }
-
 
 func readSwitches(filename string) []EosNode {
 	var switches []EosNode
@@ -131,26 +130,25 @@ func getIpInterfaces(in <-chan EosNode) <-chan EosNode {
 }
 
 func switchesHandler(w http.ResponseWriter, r *http.Request) {
-    switches := readSwitches("switches.json")
-    c1 := genSwitches(switches)
-    c2 := getVersion(c1)
-    c2 = getIntfConnected(c2)
-    c2 = getIpInterfaces(c2)
-    output := []EosNode{}
-    for i := 0; i < len(switches); i++ {
-        node := <-c2
-        fmt.Println(node)
-        output = append(output, node)
-    }
+	switches := readSwitches("switches.json")
+	c1 := genSwitches(switches)
+	c2 := getVersion(c1)
+	c2 = getIntfConnected(c2)
+	c2 = getIpInterfaces(c2)
+	output := []EosNode{}
+	for i := 0; i < len(switches); i++ {
+		node := <-c2
+		fmt.Println(node)
+		output = append(output, node)
+	}
 
-    b, err := json.Marshal(output)
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    fmt.Fprintf(w, string(b))
+	b, err := json.Marshal(output)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Fprintf(w, string(b))
 }
-
 
 func main() {
 	swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
@@ -167,6 +165,6 @@ func main() {
 		fmt.Print(node.Hostname + ": ")
 		fmt.Println(node.IntfConnected)
 	}
-    http.HandleFunc("/switches/", switchesHandler)
-    http.ListenAndServe(":8081", nil)
+	http.HandleFunc("/switches/", switchesHandler)
+	http.ListenAndServe(":8081", nil)
 }

@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/fredhsu/go-eapi"
+	"github.com/fredhsu/eapigo"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type EosNode struct {
 	Hostname      string
-    ModelName   string
+	ModelName     string
 	MgmtIp        string
 	Username      string
 	Password      string
@@ -25,23 +26,24 @@ type EosNode struct {
 	IntfConnected []string
 	IpIntf        []string
 	Vlans         []string
-    // LldpNeighbors   []string
-    LldpNeighbors   []eapi.LldpNeighbor
+	LldpNeighbors []eapi.LldpNeighbor
 }
-
-// type LldpNeighbor struct {
-//                 "ttl": 120,
-//                "neighborDevice": "bleaf1.aristanetworks.com",
-//                "neighborPort": "Ethernet1",
-//                "port": "Ethernet1"
-//     Port string
-//     NeighborDevice string
-
-// }
 
 type ChanResponse struct {
 	response eapi.JsonRpcResponse
 	node     EosNode
+}
+
+type Link struct {
+    Source int `json:"source"`
+    Target int `json:"target"`
+    Value int `json:"value"`
+    Distance int `json:"distance"`
+}
+
+type TopoData struct {
+    Nodes []EosNode
+    Links []Link
 }
 
 func writeConfigFile(path string, n EosNode, config string) {
@@ -111,9 +113,9 @@ func getVersion(in <-chan EosNode) <-chan EosNode {
 			cmds := []string{"show version"}
 			url := buildUrl(n)
 			response := eapi.Call(url, cmds, "json")
-            result := response.Result[0]
+			result := response.Result[0]
 			n.Version = result["version"].(string)
-            n.ModelName = result["modelName"].(string)
+			n.ModelName = result["modelName"].(string)
 			out <- n
 		}
 		close(out)
@@ -157,42 +159,45 @@ func getIpInterfaces(in <-chan EosNode) <-chan EosNode {
 	return out
 }
 
+// Gets LLDP Neighbors and updates the EosNodes with the neighbors
 func getLldpNeighbors(in <-chan EosNode) <-chan EosNode {
-    out := make(chan EosNode)
-    go func() {
-        for n := range in {
-            cmds := []string{"show lldp neighbors"}
-            data := eapi.RawCall(buildUrl(n), cmds, "json")
-            var jsonresp map[string][]json.RawMessage
-            err := json.Unmarshal(data, &jsonresp)
-            if err != nil {
-                fmt.Print("Json error")
-            }
-            var v eapi.ShowLldpNeighbors
-            // var jsonresp2 []json.RawMessage
+	out := make(chan EosNode)
+	go func() {
+		for n := range in {
+			cmds := []string{"show lldp neighbors"}
+			data := eapi.RawCall(buildUrl(n), cmds, "json")
+			var jsonresp map[string][]json.RawMessage
+			err := json.Unmarshal(data, &jsonresp)
+			if err != nil {
+				fmt.Print("Json error: ")
+				fmt.Println(err)
+			}
+			var v eapi.ShowLldpNeighbors
+			// var jsonresp2 []json.RawMessage
 
-            json.Unmarshal(jsonresp["result"][0], &v)
-            // fmt.Println(jsonresp2)
-            // fmt.Println(jsonresp["result"])
-            // fmt.Println(v)
-            n.LldpNeighbors = v.LldpNeighbors
-            // neighbors := (response.Result[0]["lldpNeighbors"]).([]interface{})
-            // for _, neigh := range neighbors {
-            //     i := neigh.(map[string]interface {})
-            //     n.LldpNeighbors = append(n.LldpNeighbors, i["neighborDevice"].(string))
-            // }
-            out <- n
-        }
-        close(out)
-    }()
-    return out
+			json.Unmarshal(jsonresp["result"][0], &v)
+			// fmt.Println(jsonresp2)
+			// fmt.Println(jsonresp["result"])
+			// fmt.Println(v)
+			n.LldpNeighbors = v.LldpNeighbors
+			// neighbors := (response.Result[0]["lldpNeighbors"]).([]interface{})
+			// for _, neigh := range neighbors {
+			//     i := neigh.(map[string]interface {})
+			//     n.LldpNeighbors = append(n.LldpNeighbors, i["neighborDevice"].(string))
+			// }
+			out <- n
+		}
+		close(out)
+	}()
+	return out
 }
 
-func switchesHandler(w http.ResponseWriter, r *http.Request) {
-	switches := readSwitches("switches.json")
+// HTTP Handler for /switches
+func switchesHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
+	// switches := readSwitches("switches.json")
 	c1 := genSwitches(switches)
 	c2 := getVersion(c1)
-    c2 = getLldpNeighbors(c2)
+	c2 = getLldpNeighbors(c2)
 	// c2 = getIntfConnected(c2)
 	// c2 = getIpInterfaces(c2)
 	output := []EosNode{}
@@ -210,21 +215,70 @@ func switchesHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, string(b))
 }
 
-func main() {
-	// swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
-	flag.Parse() // command-line flag parsing
-	// switches := readSwitches(*swFilePtr)
+// Used to remove the FQDN to make names shorter and consistent
+func removeFqdn(host string, domain string) string {
+	return strings.TrimSuffix(host, "."+domain)
+}
 
-	fmt.Println("############# Using Pipelines ###################")
-	// c1 := genSwitches(switches)
-	// c2 := getConfigs(c1)
-	// c3 := getVersion(c2)
-	// out := getIntfConnected(c3)
-	// for i := 0; i < len(switches); i++ {
-	// 	node := <-out
-	// 	fmt.Print(node.Hostname + ": ")
-	// 	fmt.Println(node.IntfConnected)
-	// }
-	http.HandleFunc("/switches/", switchesHandler)
+func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
+	c1 := genSwitches(switches)
+	c2 := getLldpNeighbors(c1)
+	nodes := []EosNode{}
+	// {"source":0,"target":4,"value":1,"distance":5},
+	sourceIds := map[string]int{}
+	var links []Link
+	for i := 0; i < len(switches); i++ {
+		node := <-c2
+		fmt.Println(node)
+		nodes = append(nodes, node)
+		sourceIds[node.Hostname] = i
+		fmt.Println("sourceIds:")
+		fmt.Println(sourceIds)
+	}
+	for i, node := range nodes {
+		for _, l := range node.LldpNeighbors {
+			target, ok := sourceIds[removeFqdn(l.NeighborDevice, "aristanetworks.com")]
+			if !ok {
+				fmt.Println("Not a valid neighbor: " + l.NeighborDevice)
+			} else {
+                fmt.Println("Link from " + node.Hostname + " to " + l.NeighborDevice)
+				link := Link{
+                    Source: i,
+                    Target: target,
+                    Value: 1,
+                    Distance: 5,
+                }
+				// link["source"] = i
+				// link["target"] = target
+				// link["value"] = 1
+				// link["distance"] = 5
+				// fmt.Println(removeFqdn(l.NeighborDevice, "aristanetworks.com"))
+				links = append(links, link)
+			}
+		}
+	}
+    output := TopoData{Nodes: nodes, Links: links}
+
+	// nodes := string
+	b, err := json.Marshal(output)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Fprintf(w, string(b))
+}
+
+func main() {
+	swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
+	flag.Parse() // command-line flag parsing
+	switches := readSwitches(*swFilePtr)
+
+	http.HandleFunc("/switches/", func(w http.ResponseWriter, r *http.Request) {
+		switchesHandler(w, r, switches)
+	})
+	http.HandleFunc("/topo/", func(w http.ResponseWriter, r *http.Request) {
+		topoHandler(w, r, switches)
+	})
+
 	http.ListenAndServe(":8081", nil)
 }
