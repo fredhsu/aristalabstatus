@@ -165,18 +165,23 @@ func getLldpNeighbors(in <-chan EosNode) <-chan EosNode {
 	out := make(chan EosNode)
 	go func() {
 		for n := range in {
+            fmt.Println("getLldpNeighbors" + n.Hostname)
 			cmds := []string{"show lldp neighbors"}
 			data := eapi.RawCall(buildUrl(n), cmds, "json")
-			var jsonresp map[string][]json.RawMessage
+            // data := eapi.Call(buildUrl(n), cmds, "json")
+			var jsonresp eapi.RawJsonRpcResponse
+            // var jsonresp map[string]interface{}
 			err := json.Unmarshal(data, &jsonresp)
 			if err != nil {
 				fmt.Print("Json error: ")
 				fmt.Println(err)
 			}
+            // v := jsonresp.Result[0].(eapi.ShowLldpNeighbors)
 			var v eapi.ShowLldpNeighbors
 			// var jsonresp2 []json.RawMessage
 
-			json.Unmarshal(jsonresp["result"][0], &v)
+			json.Unmarshal(jsonresp.Result[0], &v)
+            // v := data.Result[0].(eapi.ShowLldpNeighbors)
 			// fmt.Println(jsonresp2)
 			// fmt.Println(jsonresp["result"])
 			// fmt.Println(v)
