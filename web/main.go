@@ -8,7 +8,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+    "time"
 	"strings"
+    "html/template"
     lab "github.com/fredhsu/aristalabstatus"
 )
 
@@ -275,23 +277,33 @@ func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 }
 
 func panHandler(w http.ResponseWriter, r *http.Request) {
+    backupHost := "172.22.28.27"
+    dosHost := "172.22.28.28"
     // Test if panview server is up
-    // pause
-    lab.PanPause()
-    // clear entries
+    lab.PanResume()
     lab.PanClear()
-    // check for no flow entries
-    // send pings
-    err := lab.PingHost("8.8.8.8")
-    if err != nil {
-	    fmt.Fprintf(w, err.Error())
-        return
-    }
+    go lab.PingHost(dosHost)
+    go lab.PingHost(backupHost)
+    time.Sleep(20 * time.Second)
+
     // check flow entries
-    lab.PanFlowTest()
-    // Reset demo
+    bypassResult := lab.PanFlowTest("BYPASS")
+    dropResult := lab.PanFlowTest("DROP")
+    result := bypassResult + "\n" + dropResult
     lab.PanClear()
+    // Change this to send a JSON reply instead
+    fmt.Fprintf(w, result)
 }
+
+func dashViewHandler(w http.ResponseWriter, r *http.Request) {
+    tmpl_list := []string{"../templates/base.html", "../templates/navbar.html", "../templates/header.html", "../templates/footer.html"}
+    t, err := template.ParseFiles(tmpl_list...)
+    if err != nil {
+        fmt.Print("template parsing error: ", err)
+    }
+    err = t.Execute(w, nil)
+}
+
 
 func main() {
 	swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
@@ -307,6 +319,10 @@ func main() {
 	http.HandleFunc("/pan/", func(w http.ResponseWriter, r *http.Request) {
 		panHandler(w, r)
 	})
+
+    http.HandleFunc("/view/dashboard", func(w http.ResponseWriter, r *http.Request) {
+        dashViewHandler(w, r)
+    })
 
 	http.ListenAndServe(":8081", nil)
 }

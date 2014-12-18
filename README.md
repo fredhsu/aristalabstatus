@@ -1,6 +1,6 @@
 arista-labstatus
 ================
-
+Not for actual use
 Web application to monitor the status of Arista EOS switches
 
 # getSwitchConfigs
@@ -24,3 +24,5 @@ The point here is that the UX is determined more by the workflow than by the UI.
 Add in Git version control of config
 Add in Gerrit code review of config
 Use config templates
+
+Check interfaces that are up/down make sure they are as they should be
