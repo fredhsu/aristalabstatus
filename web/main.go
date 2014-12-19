@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	lab "github.com/fredhsu/aristalabstatus"
 	"github.com/fredhsu/eapigo"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 	"os"
-    "time"
 	"strings"
-    "html/template"
-    lab "github.com/fredhsu/aristalabstatus"
+	"time"
 )
 
 type EosNode struct {
@@ -32,21 +32,26 @@ type EosNode struct {
 	LldpNeighbors []eapi.LldpNeighbor
 }
 
+type DemoStatus struct {
+	Working bool
+	Error   string
+}
+
 type ChanResponse struct {
 	response eapi.JsonRpcResponse
 	node     EosNode
 }
 
 type Link struct {
-    Source int `json:"source"`
-    Target int `json:"target"`
-    Value int `json:"value"`
-    Distance int `json:"distance"`
+	Source   int `json:"source"`
+	Target   int `json:"target"`
+	Value    int `json:"value"`
+	Distance int `json:"distance"`
 }
 
 type TopoData struct {
-    Nodes []EosNode
-    Links []Link
+	Nodes []EosNode
+	Links []Link
 }
 
 func writeConfigFile(path string, n EosNode, config string) {
@@ -167,23 +172,23 @@ func getLldpNeighbors(in <-chan EosNode) <-chan EosNode {
 	out := make(chan EosNode)
 	go func() {
 		for n := range in {
-            fmt.Println("getLldpNeighbors" + n.Hostname)
+			fmt.Println("getLldpNeighbors" + n.Hostname)
 			cmds := []string{"show lldp neighbors"}
 			data := eapi.RawCall(buildUrl(n), cmds, "json")
-            // data := eapi.Call(buildUrl(n), cmds, "json")
+			// data := eapi.Call(buildUrl(n), cmds, "json")
 			var jsonresp eapi.RawJsonRpcResponse
-            // var jsonresp map[string]interface{}
+			// var jsonresp map[string]interface{}
 			err := json.Unmarshal(data, &jsonresp)
 			if err != nil {
 				fmt.Print("Json error: ")
 				fmt.Println(err)
 			}
-            // v := jsonresp.Result[0].(eapi.ShowLldpNeighbors)
+			// v := jsonresp.Result[0].(eapi.ShowLldpNeighbors)
 			var v eapi.ShowLldpNeighbors
 			// var jsonresp2 []json.RawMessage
 
 			json.Unmarshal(jsonresp.Result[0], &v)
-            // v := data.Result[0].(eapi.ShowLldpNeighbors)
+			// v := data.Result[0].(eapi.ShowLldpNeighbors)
 			// fmt.Println(jsonresp2)
 			// fmt.Println(jsonresp["result"])
 			// fmt.Println(v)
@@ -249,13 +254,13 @@ func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 			if !ok {
 				fmt.Println("Not a valid neighbor: " + l.NeighborDevice)
 			} else {
-                fmt.Println("Link from " + node.Hostname + " to " + l.NeighborDevice)
+				fmt.Println("Link from " + node.Hostname + " to " + l.NeighborDevice)
 				link := Link{
-                    Source: i,
-                    Target: target,
-                    Value: 1,
-                    Distance: 5,
-                }
+					Source:   i,
+					Target:   target,
+					Value:    1,
+					Distance: 5,
+				}
 				// link["source"] = i
 				// link["target"] = target
 				// link["value"] = 1
@@ -265,7 +270,7 @@ func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 			}
 		}
 	}
-    output := TopoData{Nodes: nodes, Links: links}
+	output := TopoData{Nodes: nodes, Links: links}
 
 	// nodes := string
 	b, err := json.Marshal(output)
@@ -277,33 +282,39 @@ func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 }
 
 func panHandler(w http.ResponseWriter, r *http.Request) {
-    backupHost := "172.22.28.27"
-    dosHost := "172.22.28.28"
-    // Test if panview server is up
-    lab.PanResume()
-    lab.PanClear()
-    go lab.PingHost(dosHost)
-    go lab.PingHost(backupHost)
-    time.Sleep(20 * time.Second)
+	backupHost := "172.22.28.27"
+	dosHost := "172.22.28.28"
+	// Test if panview server is up
+	lab.PanResume()
+	lab.PanClear()
+	go lab.PingHost(dosHost)
+	go lab.PingHost(backupHost)
+	time.Sleep(30 * time.Second)
 
-    // check flow entries
-    bypassResult := lab.PanFlowTest("BYPASS")
-    dropResult := lab.PanFlowTest("DROP")
-    result := bypassResult + "\n" + dropResult
-    lab.PanClear()
-    // Change this to send a JSON reply instead
-    fmt.Fprintf(w, result)
+	// check flow entries
+	bypassResult, bypassReason := lab.PanFlowTest("BYPASS")
+	dropResult, dropReason := lab.PanFlowTest("DROP")
+	// result := bypassResult + "\n" + dropResult
+	lab.PanClear()
+	// Change this to send a JSON reply instead
+	bypassStatus := DemoStatus{Working: bypassResult, Error: bypassReason}
+	dropStatus := DemoStatus{Working: dropResult, Error: dropReason}
+	j, err := json.Marshal([]DemoStatus{bypassStatus, dropStatus})
+	if err != nil {
+		fmt.Fprintf(w, "Error encoding PAN demo response")
+		return
+	}
+	fmt.Fprintf(w, string(j))
 }
 
 func dashViewHandler(w http.ResponseWriter, r *http.Request) {
-    tmpl_list := []string{"../templates/base.html", "../templates/navbar.html", "../templates/header.html", "../templates/footer.html"}
-    t, err := template.ParseFiles(tmpl_list...)
-    if err != nil {
-        fmt.Print("template parsing error: ", err)
-    }
-    err = t.Execute(w, nil)
+	tmpl_list := []string{"../templates/base.html", "../templates/navbar.html", "../templates/header.html", "../templates/footer.html"}
+	t, err := template.ParseFiles(tmpl_list...)
+	if err != nil {
+		fmt.Print("template parsing error: ", err)
+	}
+	err = t.Execute(w, nil)
 }
-
 
 func main() {
 	swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
@@ -320,9 +331,9 @@ func main() {
 		panHandler(w, r)
 	})
 
-    http.HandleFunc("/view/dashboard", func(w http.ResponseWriter, r *http.Request) {
-        dashViewHandler(w, r)
-    })
+	http.HandleFunc("/view/dashboard", func(w http.ResponseWriter, r *http.Request) {
+		dashViewHandler(w, r)
+	})
 
 	http.ListenAndServe(":8081", nil)
 }

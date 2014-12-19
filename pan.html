@@ -1,0 +1,33 @@
+  <div class="jumbotron text-center">
+        <h1>PAN Demo</h1>
+
+        <p>Demo of Direct Flow Assist with Palo Alto Networks</p>
+        <p>Test run takes approx 30 seconds.</p>
+        <button type="button" class="btn btn-lg btn-primary"
+        ng-click="itemClicked()">Run Test</button>
+
+          <div class="table-responsive">
+          <h2>
+        <table class="table text-left">
+        <tr class="warning">
+        <th>
+        Demo Component
+        </th>
+        <th>
+        Status
+        </th>
+        </tr>
+        <tr>
+        <td>Bypass Flow Demo</td>
+        <td><span class="bypassstatus label label-default"
+        ng-class="bypasslabel"><span ng-bind="bypassresult"></span></span></td>
+        </tr>
+        <tr><td>Drop Flow Demo</td>
+        <td><span class="dropstatus label label-default"
+                  ng-class="droplabel"><span ng-bind="dropresult"></span></span>
+        </td>
+        </tr>
+        </table>
+        </h2>
+        </div>
+    </div>
