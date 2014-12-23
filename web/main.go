@@ -207,16 +207,6 @@ func getLldpNeighbors(in <-chan EosNode) <-chan EosNode {
 
 // HTTP Handler for /switches
 func switchesHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers",
-		"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-
-	// Stop here if its Preflighted OPTIONS request
-	if r.Method == "OPTIONS" {
-		return
-	}
-
 	c1 := genSwitches(switches)
 	c2 := getVersion(c1)
 	c2 = getLldpNeighbors(c2)
