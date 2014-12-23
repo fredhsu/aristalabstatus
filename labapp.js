@@ -1,15 +1,16 @@
 var app = angular.module('labApp', ['ngResource', 'ngRoute']);
+var host = 'http://172.22.206.54:8081'
 
 app.factory("Get", function($resource) {
-    return $resource('http://localhost:8081/status', {})
+    return $resource('/status', {})
 });
 
 app.factory("PanTest", function($resource) {
-    return $resource('http://localhost:8081/pan', {})
+    return $resource('/pan', {})
 });
 
 app.factory("PanWebTest", function($resource) {
-    return $resource('http://localhost:8081/panweb', {})
+    return $resource('/panweb', {})
 });
 
 // app.controller('SwitchesController', ['$scope', function($scope) {
