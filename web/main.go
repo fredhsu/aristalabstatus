@@ -6,7 +6,6 @@ import (
 	"fmt"
 	lab "github.com/fredhsu/aristalabstatus"
 	"github.com/fredhsu/eapigo"
-	"html/template"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -210,9 +209,8 @@ func switchesHandler(w http.ResponseWriter, r *http.Request, switches []EosNode)
 	c1 := genSwitches(switches)
 	c2 := getVersion(c1)
 	c2 = getLldpNeighbors(c2)
-	// c2 = getIntfConnected(c2)
-	// c2 = getIpInterfaces(c2)
 	output := []EosNode{}
+
 	for i := 0; i < len(switches); i++ {
 		node := <-c2
 		fmt.Println(node)
@@ -236,7 +234,6 @@ func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	c1 := genSwitches(switches)
 	c2 := getLldpNeighbors(c1)
 	nodes := []EosNode{}
-	// {"source":0,"target":4,"value":1,"distance":5},
 	sourceIds := map[string]int{}
 	var links []Link
 	for i := 0; i < len(switches); i++ {
@@ -270,8 +267,6 @@ func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 		}
 	}
 	output := TopoData{Nodes: nodes, Links: links}
-
-	// nodes := string
 	b, err := json.Marshal(output)
 	if err != nil {
 		fmt.Println(err)
@@ -303,8 +298,6 @@ func panWebHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 func panHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	backupHost := "172.22.28.27"
 	dosHost := "172.22.28.28"
-	// Test if panview server is up
-	// Test showinterfaces
 
 	lab.PanResume()
 	lab.PanClear()
@@ -342,12 +335,16 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, []EosNode), switche
 	}
 }
 
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
 func main() {
 	swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
 	flag.Parse() // command-line flag parsing
 	switches := readSwitches(*swFilePtr)
 
-	// http.HandleFunc("/switches", func(w http.ResponseWriter, r *http.Request) {
+	// http.HandleFunc("/switch", func(w http.ResponseWriter, r *http.Request) {
 	// 	switchesHandler(w, r, switches)
 	// })
 	// http.HandleFunc("/topo", func(w http.ResponseWriter, r *http.Request) {
@@ -357,12 +354,13 @@ func main() {
 	// 	panHandler(w, r, switches)
 	// })
 	http.HandleFunc("/switches", makeHandler(switchesHandler, switches))
+	http.HandleFunc("/status", makeHandler(switchesHandler, switches))
 	http.HandleFunc("/topo", makeHandler(topoHandler, switches))
 	http.HandleFunc("/pan", makeHandler(panHandler, switches))
 	// http.HandleFunc("/panweb", func(w http.ResponseWriter, r *http.Request) {
 	// 	panWebHandler(w, r)
 	// })
 	http.HandleFunc("/panweb", makeHandler(panWebHandler, switches))
-
+	http.Handle("/", http.FileServer(http.Dir("..")))
 	http.ListenAndServe(":8081", nil)
 }
