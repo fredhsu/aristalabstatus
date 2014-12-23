@@ -11,6 +11,10 @@ app.factory("PanTest", function($resource) {
     return $resource('http://localhost:8081/pan', {})
 });
 
+app.factory("PanWebTest", function($resource) {
+    return $resource('http://localhost:8081/panweb', {})
+});
+
 
 // app.controller('SwitchesController', ['$scope', function($scope) {
 app.controller('SwitchesController', function($scope, Get) {
@@ -23,15 +27,28 @@ app.controller('SwitchesController', function($scope, Get) {
 
 });
 
-app.controller('PanController', function($scope, $log, PanTest) {
+app.controller('PanController', function($scope, $log, PanTest, PanWebTest) {
+      $scope.webresult = 'No Test';
       $scope.bypassresult = 'No Test';
       $scope.dropresult = 'No Test';
 
       $scope.itemClicked = function () {
+        $scope.weblabel = "label-info";
         $scope.bypasslabel = "label-info";
         $scope.droplabel = "label-info";
+        $scope.webresult = 'Running';
         $scope.bypassresult = 'Running';
         $scope.dropresult = 'Running';
+        PanWebTest.query(function(data) {
+            if (data[0].Working) {
+                $scope.weblabel = "label-success";
+                $scope.webresult = 'Passed';
+            } else {
+                $scope.weblabel = "label-danger";
+                $scope.webresult = 'Failed';
+            }
+        });
+
         PanTest.query(function(data) {
             $log.log(data);
             if (data[0].Working) {

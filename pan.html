@@ -2,6 +2,7 @@
         <h1>PAN Demo</h1>
 
         <p>Demo of Direct Flow Assist with Palo Alto Networks</p>
+        <p>Please make sure the demo is not booked in the calendar before testing</p>
         <p>Test run takes approx 30 seconds.</p>
         <button type="button" class="btn btn-lg btn-primary"
         ng-click="itemClicked()">Run Test</button>
@@ -18,6 +19,11 @@
         </th>
         </tr>
         <tr>
+        <td>Web Server</td>
+        <td><span class="webstatus label label-default"
+        ng-class="weblabel"><span ng-bind="webresult"></span></span></td>
+        </tr>
+        <tr>
         <td>Bypass Flow Demo</td>
         <td><span class="bypassstatus label label-default"
         ng-class="bypasslabel"><span ng-bind="bypassresult"></span></span></td>
@@ -29,5 +35,17 @@
         </tr>
         </table>
         </h2>
+
         </div>
+        <p class="text-left">
+        What is being tested:
+        <ul class="text-left">
+        <li>Check if web server for visualization is up</li>
+        <li>'Resume' and 'Clear' the DFA script </li>
+        <li>Send traffic to bypass and DOS targets</li>
+        <li>Wait 30 sec for flows to be installed</li>
+        <li>Check if flows were installed correctly</li>
+        <li>Remove added flows to reset demo</li>
+        </ul>
+        </p>
     </div>

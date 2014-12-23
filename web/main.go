@@ -281,10 +281,32 @@ func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	fmt.Fprintf(w, string(b))
 }
 
+func panWebHandler(w http.ResponseWriter, r *http.Request) {
+    svr := "172.22.28.143:8090"
+    path := "/showinterfaces"
+    url := "http://" + svr + path
+    res, err := http.Get(url)
+    var webStatus = DemoStatus{}
+    if err != nil {
+        webStatus.Working = false
+        webStatus.Error = err.Error()
+    } else {
+        webStatus.Working = true
+        defer res.Body.Close()
+    }
+    j, err := json.Marshal([]DemoStatus{webStatus})
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Fprintf(w, string(j))
+}
+
 func panHandler(w http.ResponseWriter, r *http.Request) {
 	backupHost := "172.22.28.27"
 	dosHost := "172.22.28.28"
 	// Test if panview server is up
+    // Test showinterfaces
+
 	lab.PanResume()
 	lab.PanClear()
 	go lab.PingHost(dosHost)
@@ -330,6 +352,9 @@ func main() {
 	http.HandleFunc("/pan/", func(w http.ResponseWriter, r *http.Request) {
 		panHandler(w, r)
 	})
+    http.HandleFunc("/panweb/", func(w http.ResponseWriter, r *http.Request) {
+        panWebHandler(w, r)
+    })
 
 	http.HandleFunc("/view/dashboard", func(w http.ResponseWriter, r *http.Request) {
 		dashViewHandler(w, r)
