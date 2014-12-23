@@ -1,10 +1,7 @@
-
-
-
 var app = angular.module('labApp', ['ngResource', 'ngRoute']);
 
 app.factory("Get", function($resource) {
-    return $resource('http://localhost:8081/switches', {})
+    return $resource('http://localhost:8081/switches/', {})
 });
 
 app.factory("PanTest", function($resource) {
@@ -15,6 +12,31 @@ app.factory("PanWebTest", function($resource) {
     return $resource('http://localhost:8081/panweb', {})
 });
 
+app.factory('Switches', function($http) {
+  // Book is a class which we can use for retrieving and
+  // updating data on the server
+  var Book = function(data) {
+    angular.extend(this, data);
+  }
+
+  // a static method to retrieve Book by ID
+  Book.get = function(id) {
+    return $http.get('http://localhost:8081/switches').then(function(response) {
+      return new Switch(response.data);
+    });
+  };
+
+  // an instance method to create a new Book
+  // Book.prototype.create = function() {
+  //   var book = this;
+  //   return $http.post('/Book/', book).then(function(response) {
+  //     book.id = response.data.id;
+  //     return book;
+  //   });
+  // }
+
+  return Book;
+});
 
 // app.controller('SwitchesController', ['$scope', function($scope) {
 app.controller('SwitchesController', function($scope, Get) {
@@ -69,7 +91,9 @@ app.controller('PanController', function($scope, $log, PanTest, PanWebTest) {
       };
 });
 
-app.config(function($routeProvider) {
+app.config(function($routeProvider, $httpProvider) {
+    $httpProvider.defaults.useXDomain = true;
+    delete $httpProvider.defaults.headers.common['X-Requested-With'];
     $routeProvider
         .when('/', {
             templateUrl : 'home.html'

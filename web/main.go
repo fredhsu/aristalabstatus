@@ -207,8 +207,17 @@ func getLldpNeighbors(in <-chan EosNode) <-chan EosNode {
 
 // HTTP Handler for /switches
 func switchesHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
-	// switches := readSwitches("switches.json")
-	c1 := genSwitches(switches)
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+        w.Header().Set("Access-Control-Allow-Headers",
+            "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+    // Stop here if its Preflighted OPTIONS request
+    if r.Method == "OPTIONS" {
+        return
+    }
+
+    c1 := genSwitches(switches)
 	c2 := getVersion(c1)
 	c2 = getLldpNeighbors(c2)
 	// c2 = getIntfConnected(c2)
@@ -343,16 +352,16 @@ func main() {
 	flag.Parse() // command-line flag parsing
 	switches := readSwitches(*swFilePtr)
 
-	http.HandleFunc("/switches/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/switches", func(w http.ResponseWriter, r *http.Request) {
 		switchesHandler(w, r, switches)
 	})
-	http.HandleFunc("/topo/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/topo", func(w http.ResponseWriter, r *http.Request) {
 		topoHandler(w, r, switches)
 	})
-	http.HandleFunc("/pan/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/pan", func(w http.ResponseWriter, r *http.Request) {
 		panHandler(w, r)
 	})
-    http.HandleFunc("/panweb/", func(w http.ResponseWriter, r *http.Request) {
+    http.HandleFunc("/panweb", func(w http.ResponseWriter, r *http.Request) {
         panWebHandler(w, r)
     })
 
