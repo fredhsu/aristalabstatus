@@ -207,17 +207,17 @@ func getLldpNeighbors(in <-chan EosNode) <-chan EosNode {
 
 // HTTP Handler for /switches
 func switchesHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
-        w.Header().Set("Access-Control-Allow-Origin", "*")
-        w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-        w.Header().Set("Access-Control-Allow-Headers",
-            "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers",
+		"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-    // Stop here if its Preflighted OPTIONS request
-    if r.Method == "OPTIONS" {
-        return
-    }
+	// Stop here if its Preflighted OPTIONS request
+	if r.Method == "OPTIONS" {
+		return
+	}
 
-    c1 := genSwitches(switches)
+	c1 := genSwitches(switches)
 	c2 := getVersion(c1)
 	c2 = getLldpNeighbors(c2)
 	// c2 = getIntfConnected(c2)
@@ -290,31 +290,31 @@ func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	fmt.Fprintf(w, string(b))
 }
 
-func panWebHandler(w http.ResponseWriter, r *http.Request) {
-    svr := "172.22.28.143:8090"
-    path := "/showinterfaces"
-    url := "http://" + svr + path
-    res, err := http.Get(url)
-    var webStatus = DemoStatus{}
-    if err != nil {
-        webStatus.Working = false
-        webStatus.Error = err.Error()
-    } else {
-        webStatus.Working = true
-        defer res.Body.Close()
-    }
-    j, err := json.Marshal([]DemoStatus{webStatus})
-    if err != nil {
-        fmt.Println(err)
-    }
-    fmt.Fprintf(w, string(j))
+func panWebHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
+	svr := "172.22.28.143:8090"
+	path := "/showinterfaces"
+	url := "http://" + svr + path
+	res, err := http.Get(url)
+	var webStatus = DemoStatus{}
+	if err != nil {
+		webStatus.Working = false
+		webStatus.Error = err.Error()
+	} else {
+		webStatus.Working = true
+		defer res.Body.Close()
+	}
+	j, err := json.Marshal([]DemoStatus{webStatus})
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Fprintf(w, string(j))
 }
 
-func panHandler(w http.ResponseWriter, r *http.Request) {
+func panHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	backupHost := "172.22.28.27"
 	dosHost := "172.22.28.28"
 	// Test if panview server is up
-    // Test showinterfaces
+	// Test showinterfaces
 
 	lab.PanResume()
 	lab.PanClear()
@@ -338,13 +338,18 @@ func panHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, string(j))
 }
 
-func dashViewHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl_list := []string{"../templates/base.html", "../templates/navbar.html", "../templates/header.html", "../templates/footer.html"}
-	t, err := template.ParseFiles(tmpl_list...)
-	if err != nil {
-		fmt.Print("template parsing error: ", err)
+func makeHandler(fn func(http.ResponseWriter, *http.Request, []EosNode), switches []EosNode) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers",
+			"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		// Stop here if its Preflighted OPTIONS request
+		if r.Method == "OPTIONS" {
+			return
+		}
+		fn(w, r, switches)
 	}
-	err = t.Execute(w, nil)
 }
 
 func main() {
@@ -352,22 +357,22 @@ func main() {
 	flag.Parse() // command-line flag parsing
 	switches := readSwitches(*swFilePtr)
 
-	http.HandleFunc("/switches", func(w http.ResponseWriter, r *http.Request) {
-		switchesHandler(w, r, switches)
-	})
-	http.HandleFunc("/topo", func(w http.ResponseWriter, r *http.Request) {
-		topoHandler(w, r, switches)
-	})
-	http.HandleFunc("/pan", func(w http.ResponseWriter, r *http.Request) {
-		panHandler(w, r)
-	})
-    http.HandleFunc("/panweb", func(w http.ResponseWriter, r *http.Request) {
-        panWebHandler(w, r)
-    })
-
-	http.HandleFunc("/view/dashboard", func(w http.ResponseWriter, r *http.Request) {
-		dashViewHandler(w, r)
-	})
+	// http.HandleFunc("/switches", func(w http.ResponseWriter, r *http.Request) {
+	// 	switchesHandler(w, r, switches)
+	// })
+	// http.HandleFunc("/topo", func(w http.ResponseWriter, r *http.Request) {
+	// 	topoHandler(w, r, switches)
+	// })
+	// http.HandleFunc("/pan", func(w http.ResponseWriter, r *http.Request) {
+	// 	panHandler(w, r, switches)
+	// })
+	http.HandleFunc("/switches", makeHandler(switchesHandler, switches))
+	http.HandleFunc("/topo", makeHandler(topoHandler, switches))
+	http.HandleFunc("/pan", makeHandler(panHandler, switches))
+	// http.HandleFunc("/panweb", func(w http.ResponseWriter, r *http.Request) {
+	// 	panWebHandler(w, r)
+	// })
+	http.HandleFunc("/panweb", makeHandler(panWebHandler, switches))
 
 	http.ListenAndServe(":8081", nil)
 }
