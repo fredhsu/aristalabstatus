@@ -1,0 +1,21 @@
+<h1>switches</h1>
+<div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Switch</th>
+          <th>Mgmt IP</th>
+          <th>Reachable</th>
+          <th>Config</th>
+          <th>Uptime</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            {{range $index, $switch := .}}
+            <td>{{$switch}}</td>
+            {{end}}
+        </tr>
+        </tbody>
+</table>
+</div>

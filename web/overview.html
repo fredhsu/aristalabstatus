@@ -1,0 +1,58 @@
+  <h1 class="page-header">Overview</h1>
+
+
+  <h2 class="sub-header">Switch Inventory</h2>
+  <div class="table-responsive">
+    <table class="table table-striped" ng-controller="SwitchesController">
+      <thead>
+        <tr>
+          <th>Hostname</th>
+          <th>Model</th>
+          <th>Version</th>
+      </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="switch in test">
+        <td>{{switch.Hostname}}</td>
+        <td>{{switch.ModelName}}</td>
+        <td>{{switch.Version}}</td>
+    </tr>
+</tbody>
+</table>
+</div>
+
+<h2 class="sub-header">Server Inventory</h2>
+<div class="table-responsive">
+    <table class="table table-striped" ng-controller="SwitchesController">
+      <thead>
+        <tr>
+          <th>Hostname</th>
+          <th>Reachable</th>
+      </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="server in servers">
+        <td>{{server.Hostname}}</td>
+        <td>{{server.Reachable}}</td>
+    </tr>
+</tbody>
+</table>
+</div>
+
+<h2 class="sub-header">vSphere Virtual Machines</h2>
+<div class="table-responsive">
+    <table class="table table-striped" ng-controller="SwitchesController">
+      <thead>
+        <tr>
+          <th>Hostname</th>
+          <th>Reachable</th>
+      </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="server in servers">
+        <td>{{server.Hostname}}</td>
+        <td>{{server.Reachable}}</td>
+    </tr>
+</tbody>
+</table>
+</div>
