@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	lab "github.com/fredhsu/aristalabstatus"
 	"github.com/fredhsu/eapigo"
 	"io/ioutil"
@@ -279,6 +280,10 @@ func panWebHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	svr := "172.22.28.143:8090"
 	path := "/showinterfaces"
 	url := "http://" + svr + path
+	log.WithFields(log.Fields{
+		"service": "panWebTest",
+		"url":     url,
+	}).Info("Testing Service")
 	res, err := http.Get(url)
 	var webStatus = DemoStatus{}
 	if err != nil {
@@ -292,10 +297,17 @@ func panWebHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	if err != nil {
 		fmt.Println(err)
 	}
+	log.WithFields(log.Fields{
+		"service": "panWebTest",
+		"url":     url,
+	}).Info("Finished Test")
 	fmt.Fprintf(w, string(j))
 }
 
 func panHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
+	log.WithFields(log.Fields{
+		"service": "panTest",
+	}).Info("Starting Test")
 	backupHost := "172.22.28.27"
 	dosHost := "172.22.28.28"
 
@@ -318,6 +330,9 @@ func panHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 		fmt.Fprintf(w, "Error encoding PAN demo response")
 		return
 	}
+	log.WithFields(log.Fields{
+		"service": "panTest",
+	}).Info("Finsihed Test")
 	fmt.Fprintf(w, string(j))
 }
 
@@ -361,6 +376,6 @@ func main() {
 	// 	panWebHandler(w, r)
 	// })
 	http.HandleFunc("/panweb", makeHandler(panWebHandler, switches))
-	http.Handle("/", http.FileServer(http.Dir("..")))
+	http.Handle("/", http.FileServer(http.Dir(".")))
 	http.ListenAndServe(":8081", nil)
 }
