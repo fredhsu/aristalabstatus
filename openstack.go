@@ -21,7 +21,7 @@ func getProvider() *gophercloud.ProviderClient{
     return provider
 }
 
-func getNetworkClient() *gophercloud.ServiceClient {
+func GetNetworkClient() *gophercloud.ServiceClient {
     provider := getProvider()
     client, err := openstack.NewNetworkV2(provider, gophercloud.EndpointOpts {
         Name: "neutron",
@@ -33,22 +33,22 @@ func getNetworkClient() *gophercloud.ServiceClient {
     return client
 }
 
-func CreateNetworks() {
-    client := getNetworkClient()
-    netopts := networks.CreateOpts{Name: "test_network_199", AdminStateUp: networks.Up}
+func CreateNetwork(client *gophercloud.ServiceClient, name string) *networks.Network {
+    //client := getNetworkClient()
+    netopts := networks.CreateOpts{Name: name, AdminStateUp: networks.Up}
     network, err := networks.Create(client, netopts).Extract()
-    fmt.Println(network)
-
     if err != nil {
         fmt.Println(err)
+        return nil
     }
+    return network
 }
 
-func FindNetwork(uuid string) {
-    client := getNetworkClient()
+func FindNetwork(client *gophercloud.ServiceClient, uuid string)(bool, networks.Network) {
     shared := false
     listopts := networks.ListOpts{Shared: &shared}
     pager := networks.List(client, listopts)
+    var net networks.Network 
     err := pager.EachPage(func(page pagination.Page) (bool, error) {
         networkList, _ := networks.ExtractNetworks(page)
         for _, n := range networkList {
@@ -57,17 +57,29 @@ func FindNetwork(uuid string) {
                 fmt.Println("!!! Network verified !!!")
                 //result := networks.Delete(client, n.ID)
                 //fmt.Println(result)
+                net = n
+                return true, nil
             }
         }
-        return true, nil
+        return false, nil
     })
     if err != nil {
         fmt.Println(err)
+        return false, net
     }
+    return true, net
 }
 
-func RemoveNetworks() {
+func DeleteNetwork(client *gophercloud.ServiceClient, uuid string) bool {
+    result := networks.Delete(client, uuid)
+    if result.ExtractErr() != nil {
+        fmt.Println(result)
+        return false
+    }
+    return true
+
 }
+
 
 func CheckNeutronEOS(uuids []string) {
 }

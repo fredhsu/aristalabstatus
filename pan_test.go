@@ -6,6 +6,9 @@ import (
 )
 
 func TestPing(t *testing.T) {
+    if testing.Short() {
+        t.Skip("Skipping Ping")
+    }
 	host := "8.8.8.8"
 	if err := PingHost(host); err != nil {
 		t.Errorf("Ping to {} failed, should have passed", host)
@@ -18,7 +21,10 @@ func TestPing(t *testing.T) {
 }
 
 func TestFetchFlows(t *testing.T) {
-	flows := FetchFlows("")
+    if testing.Short() {
+        t.Skip("Skipping fetch")
+    }
+	flows := FetchFlows()
 	staticCount := 0
 	for _, flow := range flows {
 		if strings.HasPrefix(flow.Name, "STATIC") {
