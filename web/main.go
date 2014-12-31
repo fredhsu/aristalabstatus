@@ -2,11 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
+	// "flag"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	lab "github.com/fredhsu/aristalabstatus"
 	"github.com/fredhsu/eapigo"
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -206,7 +207,9 @@ func getLldpNeighbors(in <-chan EosNode) <-chan EosNode {
 }
 
 // HTTP Handler for /switches
-func switchesHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
+func switchesHandler(w http.ResponseWriter, r *http.Request) {
+	switches := readSwitches("switches.json")
+
 	c1 := genSwitches(switches)
 	c2 := getVersion(c1)
 	c2 = getLldpNeighbors(c2)
@@ -231,7 +234,9 @@ func removeFqdn(host string, domain string) string {
 	return strings.TrimSuffix(host, "."+domain)
 }
 
-func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
+func topoHandler(w http.ResponseWriter, r *http.Request) {
+	switches := readSwitches("switches.json")
+
 	c1 := genSwitches(switches)
 	c2 := getLldpNeighbors(c1)
 	nodes := []EosNode{}
@@ -276,7 +281,7 @@ func topoHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	fmt.Fprintf(w, string(b))
 }
 
-func panWebHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
+func panWebHandler(w http.ResponseWriter, r *http.Request) {
 	svr := "172.22.28.143:8090"
 	path := "/showinterfaces"
 	url := "http://" + svr + path
@@ -304,7 +309,7 @@ func panWebHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	fmt.Fprintf(w, string(j))
 }
 
-func panHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
+func panHandler(w http.ResponseWriter, r *http.Request) {
 	log.WithFields(log.Fields{
 		"service": "panTest",
 	}).Info("Starting Test")
@@ -336,6 +341,50 @@ func panHandler(w http.ResponseWriter, r *http.Request, switches []EosNode) {
 	fmt.Fprintf(w, string(j))
 }
 
+func openstackHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	method := vars["method"]
+	log.WithFields(log.Fields{
+		"service": "openstack",
+		"method":  method,
+	}).Info("Starting Test")
+	switch method {
+	case "neutron":
+		nclient := lab.GetNetworkClient()
+		name := "test_network"
+		net := lab.CreateNetwork(nclient, name)
+		fmt.Fprintf(w, net.Name+" created")
+		return
+	case "subnet":
+		nclient := lab.GetNetworkClient()
+		_, net := lab.FindNetwork(nclient, "test_network")
+		sn := lab.CreateSubnet(nclient, "test_network_sn", net.ID, "192.168.187.0/24")
+		fmt.Fprintf(w, sn.Name+" created")
+		return
+	case "nova":
+		nclient := lab.GetNetworkClient()
+		cc := lab.GetComputeClient()
+		_, net := lab.FindNetwork(nclient, "test_network")
+		s := lab.CreateCompute(cc, "test_vm", net.ID)
+		fmt.Fprintf(w, s.Name+" created")
+		return
+	case "eos":
+		// Test Network in EOS
+		// Test VM in EOS
+		fmt.Fprintf(w, method)
+
+		return
+	case "reset":
+		// Remove all VMs
+		// Remove all networks
+		fmt.Fprintf(w, method)
+
+	}
+
+}
+
+// No longer needed since I'm running from Angular the same web server
+// No CORS anymore!
 func makeHandler(fn func(http.ResponseWriter, *http.Request, []EosNode), switches []EosNode) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -355,10 +404,10 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
-	flag.Parse() // command-line flag parsing
-	switches := readSwitches(*swFilePtr)
-
+	// swFilePtr := flag.String("swfile", "switches.json", "A JSON file with switches to fetch")
+	// flag.Parse() // command-line flag parsing
+	// switches := readSwitches(*swFilePtr)
+	// fmt.Println(switches)
 	// http.HandleFunc("/switch", func(w http.ResponseWriter, r *http.Request) {
 	// 	switchesHandler(w, r, switches)
 	// })
@@ -368,14 +417,20 @@ func main() {
 	// http.HandleFunc("/pan", func(w http.ResponseWriter, r *http.Request) {
 	// 	panHandler(w, r, switches)
 	// })
-	http.HandleFunc("/switches", makeHandler(switchesHandler, switches))
-	http.HandleFunc("/status", makeHandler(switchesHandler, switches))
-	http.HandleFunc("/topo", makeHandler(topoHandler, switches))
-	http.HandleFunc("/pan", makeHandler(panHandler, switches))
+	r := mux.NewRouter()
+	// http.HandleFunc("/switches", makeHandler(switchesHandler, switches))
+	//r.HandleFunc("/status", makeHandler(switchesHandler, switches))
+	r.HandleFunc("/topo", topoHandler)
+	r.HandleFunc("/status", switchesHandler)
+	r.HandleFunc("/pan", panHandler)
+	r.HandleFunc("/openstack/{method}", openstackHandler)
+	r.HandleFunc("/panweb", panWebHandler)
 	// http.HandleFunc("/panweb", func(w http.ResponseWriter, r *http.Request) {
 	// 	panWebHandler(w, r)
 	// })
-	http.HandleFunc("/panweb", makeHandler(panWebHandler, switches))
-	http.Handle("/", http.FileServer(http.Dir(".")))
-	http.ListenAndServe(":8081", nil)
+	// r.HandleFunc("/panweb", makeHandler(panWebHandler, switches))
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(".")))
+	http.Handle("/", r)
+	// r.Handle("/", http.FileServer(http.Dir(".")))
+	http.ListenAndServe(":8081", r)
 }
