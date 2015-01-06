@@ -397,13 +397,37 @@ func openstackHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case "eos":
-		// Test Network in EOS
-		// Test VM in EOS
+		nclient := lab.GetNetworkClient()
+		cc := lab.GetComputeClient()
+
+		_, net := lab.FindNetwork(nclient, netname)
+		_, compute := lab.FindCompute(cc, vmname)
+		url := "https://admin:admin@bleaf1/command-api/"
+
+		tn := lab.CheckNeutronEOS(url, net.ID)
+		tc := lab.CheckNovaEOS(url, compute.ID)
+		if tn && tc {
+			s = DemoStatus{Working: true, Error: ""}
+		} else {
+			s = DemoStatus{Working: false, Error: "EOS info was not found"}
+		}
 	case "reset":
-		// Remove all VMs
-		// Remove all networks
+		nc := lab.GetNetworkClient()
+		cc := lab.GetComputeClient()
+
+		_, net := lab.FindNetwork(nc, netname)
+		_, compute := lab.FindCompute(cc, vmname)
+		dc := lab.DeleteCompute(cc, compute.ID)
+		time.Sleep(5 * time.Second)
+		dn := lab.DeleteNetwork(nc, net.ID)
+		if dn && dc {
+			s = DemoStatus{Working: true, Error: ""}
+		} else {
+			s = DemoStatus{Working: false, Error: "Error resetting demo"}
+		}
 	}
 	fmt.Fprintf(w, genStatusJson([]DemoStatus{s}))
+
 	return
 }
 

@@ -99,7 +99,7 @@ func CreateCompute(client *gophercloud.ServiceClient, name string, netid string)
 	return compute
 }
 
-func FindNetwork(client *gophercloud.ServiceClient, uuid string) (bool, networks.Network) {
+func FindNetwork(client *gophercloud.ServiceClient, name string) (bool, networks.Network) {
 	shared := false
 	listopts := networks.ListOpts{Shared: &shared}
 	pager := networks.List(client, listopts)
@@ -107,7 +107,7 @@ func FindNetwork(client *gophercloud.ServiceClient, uuid string) (bool, networks
 	err := pager.EachPage(func(page pagination.Page) (bool, error) {
 		networkList, _ := networks.ExtractNetworks(page)
 		for _, n := range networkList {
-			if n.ID == uuid {
+			if n.Name == name {
 				net = n
 				return true, nil
 			}
@@ -119,6 +119,27 @@ func FindNetwork(client *gophercloud.ServiceClient, uuid string) (bool, networks
 		return false, net
 	}
 	return true, net
+}
+
+func FindCompute(client *gophercloud.ServiceClient, name string) (bool, servers.Server) {
+	listopts := servers.ListOpts{Name: name}
+	pager := servers.List(client, listopts)
+	var s servers.Server
+	err := pager.EachPage(func(page pagination.Page) (bool, error) {
+		serverList, _ := servers.ExtractServers(page)
+		for _, n := range serverList {
+			if n.Name == name {
+				s = n
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	if err != nil {
+		fmt.Println(err)
+		return false, s
+	}
+	return true, s
 }
 
 func DeleteNetwork(client *gophercloud.ServiceClient, uuid string) bool {

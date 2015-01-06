@@ -33,18 +33,22 @@ app.controller('SwitchesController', function($scope, Get) {
     Get.query(function(data) {
         $scope.test = data;
     });
-    $scope.switches = [
-        {Hostname:'bleaf1', IpIntf:'test', IntfConnected:'testintf', Uptime:'00', Version:'11'}
-    ];
+    $scope.switches = [{
+        Hostname: 'bleaf1',
+        IpIntf: 'test',
+        IntfConnected: 'testintf',
+        Uptime: '00',
+        Version: '11'
+    }];
 
 });
 
 app.controller('PanController', function($scope, $log, PanTest, PanWebTest) {
-      $scope.webresult = 'No Test';
-      $scope.bypassresult = 'No Test';
-      $scope.dropresult = 'No Test';
+    $scope.webresult = 'No Test';
+    $scope.bypassresult = 'No Test';
+    $scope.dropresult = 'No Test';
 
-      $scope.itemClicked = function () {
+    $scope.itemClicked = function() {
         $scope.weblabel = "label-info";
         $scope.bypasslabel = "label-info";
         $scope.droplabel = "label-info";
@@ -78,17 +82,17 @@ app.controller('PanController', function($scope, $log, PanTest, PanWebTest) {
                 $scope.dropresult = 'Failed';
             }
         });
-      };
+    };
 });
 
-app.controller('OpenstackController', function($scope, $log, NeutronNet, NeutronSubnet, NovaCompute, StackEos, StackReset) {
-      $scope.netresult = 'No Test';
-      $scope.subnetresult = 'No Test';
-      $scope.computeresult = 'No Test';
-      $scope.eosresult = 'No Test';
-      $scope.resetresult = 'No Test';
+app.controller('OpenstackController', function($scope, $log, $timeout, NeutronNet, NeutronSubnet, NovaCompute, StackEos, StackReset) {
+    $scope.netresult = 'No Test';
+    $scope.subnetresult = 'No Test';
+    $scope.computeresult = 'No Test';
+    $scope.eosresult = 'No Test';
+    $scope.resetresult = 'No Test';
 
-      $scope.itemClicked = function () {
+    $scope.itemClicked = function() {
         $scope.netlabel = "label-info";
         $scope.subnetlabel = "label-info";
         $scope.computelabel = "label-info";
@@ -101,79 +105,100 @@ app.controller('OpenstackController', function($scope, $log, NeutronNet, Neutron
         $scope.eosresult = 'Running';
         $scope.resetresult = 'Running';
 
-        NeutronNet.query(function(data) {
-            if (data[0].Working) {
-                $scope.netlabel = "label-success";
-                $scope.netresult = 'Passed';
-            } else {
-                $scope.netlabel = "label-danger";
-                $scope.netresult = 'Failed';
-            }
-        });
+        function NetFunc() {
+            NeutronNet.query(function(data) {
+                if (data[0].Working) {
+                    $scope.netlabel = "label-success";
+                    $scope.netresult = 'Passed';
+                } else {
+                    $scope.netlabel = "label-danger";
+                    $scope.netresult = 'Failed';
+                }
+            });
+            $timeout(SubnetFunc, 1000);
+            return
+        }
 
-        // NeutronSubnet.query(function(data) {
-        //     $log.log(data);
-        //     if (data[0].Working) {
-        //         $scope.subnetlabel = "label-success";
-        //         $scope.subnetresult = 'Passed';
-        //     } else {
-        //         $scope.subnetlabel = "label-danger";
-        //         $scope.subnetresult = 'Failed';
-        //     }
-        // });
-        // NovaCompute.query(function(data) {
-        //     $log.log(data);
-        //     if (data[0].Working) {
-        //         $scope.computelabel = "label-success";
-        //         $scope.computeresult = 'Passed';
-        //     } else {
-        //         $scope.computelabel = "label-danger";
-        //         $scope.computeresult = 'Failed';
-        //     }
-        // });
-        // StackEos.query(function(data) {
-        //     $log.log(data);
-        //     if (data[0].Working) {
-        //         $scope.eoslabel = "label-success";
-        //         $scope.eosresult = 'Passed';
-        //     } else {
-        //         $scope.eoslabel = "label-danger";
-        //         $scope.eosresult = 'Failed';
-        //     }
-        // });
-        // StackReset.query(function(data) {
-        //     $log.log(data);
-        //     if (data[0].Working) {
-        //         $scope.resetlabel = "label-success";
-        //         $scope.resetresult = 'Passed';
-        //     } else {
-        //         $scope.resetlabel = "label-danger";
-        //         $scope.resetresult = 'Failed';
-        //     }
-        // });
-      };
+        function SubnetFunc() {
+            NeutronSubnet.query(function(data) {
+                $log.log(data);
+                if (data[0].Working) {
+                    $scope.subnetlabel = "label-success";
+                    $scope.subnetresult = 'Passed';
+                } else {
+                    $scope.subnetlabel = "label-danger";
+                    $scope.subnetresult = 'Failed';
+                }
+            });
+            $timeout(ComputeFunc, 1000);
+
+            return
+        }
+
+        function ComputeFunc() {
+            NovaCompute.query(function(data) {
+                $log.log(data);
+                if (data[0].Working) {
+                    $scope.computelabel = "label-success";
+                    $scope.computeresult = 'Passed';
+                } else {
+                    $scope.computelabel = "label-danger";
+                    $scope.computeresult = 'Failed';
+                }
+            });
+            $timeout(EosFunc, 5000);
+        }
+
+        function EosFunc() {
+            StackEos.query(function(data) {
+                $log.log(data);
+                if (data[0].Working) {
+                    $scope.eoslabel = "label-success";
+                    $scope.eosresult = 'Passed';
+                } else {
+                    $scope.eoslabel = "label-danger";
+                    $scope.eosresult = 'Failed';
+                }
+            });
+        }
+
+        function ResetFunc() {
+            StackReset.query(function(data) {
+                $log.log(data);
+                if (data[0].Working) {
+                    $scope.resetlabel = "label-success";
+                    $scope.resetresult = 'Passed';
+                } else {
+                    $scope.resetlabel = "label-danger";
+                    $scope.resetresult = 'Failed';
+                }
+            });
+        }
+        NetFunc();
+
+    };
 });
 app.config(function($routeProvider, $httpProvider) {
     $httpProvider.defaults.useXDomain = true;
     delete $httpProvider.defaults.headers.common['X-Requested-With'];
     $routeProvider
         .when('/', {
-            templateUrl : 'home.html'
+            templateUrl: 'home.html'
         })
         .when('/overview', {
-                templateUrl : 'overview.html',
-                controller  : 'SwitchesController'
+            templateUrl: 'overview.html',
+            controller: 'SwitchesController'
         })
         .when('/topology', {
-                templateUrl : 'topology.html'
+            templateUrl: 'topology.html'
         })
         .when('/pan', {
-                templateUrl : 'pan.html',
-                controller  : 'PanController'
+            templateUrl: 'pan.html',
+            controller: 'PanController'
         })
         .when('/openstack', {
-                templateUrl : 'openstack.html',
-                controller  : 'OpenstackController'
+            templateUrl: 'openstack.html',
+            controller: 'OpenstackController'
         })
 
 });
