@@ -327,7 +327,7 @@ func panHandler(w http.ResponseWriter, r *http.Request) {
 	dropResult, dropReason := lab.PanFlowTest("DROP")
 	// result := bypassResult + "\n" + dropResult
 	lab.PanClear()
-	// Change this to send a JSON reply instead
+
 	bypassStatus := DemoStatus{Working: bypassResult, Error: bypassReason}
 	dropStatus := DemoStatus{Working: dropResult, Error: dropReason}
 	j, err := json.Marshal([]DemoStatus{bypassStatus, dropStatus})
@@ -341,6 +341,14 @@ func panHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, string(j))
 }
 
+func genStatusJson(s []DemoStatus) string {
+	j, err := json.Marshal(s)
+	if err != nil {
+		return "Error"
+	}
+	return string(j)
+}
+
 func openstackHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	method := vars["method"]
@@ -348,39 +356,55 @@ func openstackHandler(w http.ResponseWriter, r *http.Request) {
 		"service": "openstack",
 		"method":  method,
 	}).Info("Starting Test")
+	var s DemoStatus
+	netname := "test_network_a"
+	vmname := "test_vm_a"
 	switch method {
 	case "neutron":
 		nclient := lab.GetNetworkClient()
-		name := "test_network"
-		net := lab.CreateNetwork(nclient, name)
-		fmt.Fprintf(w, net.Name+" created")
-		return
+		net := lab.CreateNetwork(nclient, netname)
+		if net == nil {
+			s = DemoStatus{Working: false, Error: "Could not create net"}
+		} else {
+			s = DemoStatus{Working: true, Error: ""}
+		}
 	case "subnet":
 		nclient := lab.GetNetworkClient()
-		_, net := lab.FindNetwork(nclient, "test_network")
-		sn := lab.CreateSubnet(nclient, "test_network_sn", net.ID, "192.168.187.0/24")
-		fmt.Fprintf(w, sn.Name+" created")
-		return
+		found, net := lab.FindNetwork(nclient, netname)
+		if !found {
+			s = DemoStatus{Working: false, Error: "Could not find net"}
+		} else {
+			fmt.Println(net)
+			sn := lab.CreateSubnet(nclient, "test_network_sn", net.ID, "192.168.87.0/24")
+			if sn == nil {
+				s = DemoStatus{Working: false, Error: "Could not create subnet"}
+			} else {
+				s = DemoStatus{Working: true, Error: ""}
+			}
+		}
 	case "nova":
 		nclient := lab.GetNetworkClient()
 		cc := lab.GetComputeClient()
-		_, net := lab.FindNetwork(nclient, "test_network")
-		s := lab.CreateCompute(cc, "test_vm", net.ID)
-		fmt.Fprintf(w, s.Name+" created")
-		return
+		found, net := lab.FindNetwork(nclient, netname)
+		if !found {
+			s = DemoStatus{Working: false, Error: "Could not find net"}
+		} else {
+			c := lab.CreateCompute(cc, vmname, net.ID)
+			if c == nil {
+				s = DemoStatus{Working: false, Error: "Could not create compute"}
+			} else {
+				s = DemoStatus{Working: true, Error: ""}
+			}
+		}
 	case "eos":
 		// Test Network in EOS
 		// Test VM in EOS
-		fmt.Fprintf(w, method)
-
-		return
 	case "reset":
 		// Remove all VMs
 		// Remove all networks
-		fmt.Fprintf(w, method)
-
 	}
-
+	fmt.Fprintf(w, genStatusJson([]DemoStatus{s}))
+	return
 }
 
 // No longer needed since I'm running from Angular the same web server
@@ -423,7 +447,7 @@ func main() {
 	r.HandleFunc("/topo", topoHandler)
 	r.HandleFunc("/status", switchesHandler)
 	r.HandleFunc("/pan", panHandler)
-	r.HandleFunc("/openstack/{method}", openstackHandler)
+	r.HandleFunc("/api/openstack/{method}", openstackHandler)
 	r.HandleFunc("/panweb", panWebHandler)
 	// http.HandleFunc("/panweb", func(w http.ResponseWriter, r *http.Request) {
 	// 	panWebHandler(w, r)

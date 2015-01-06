@@ -1,0 +1,58 @@
+  <div class="jumbotron text-center">
+        <h1>OpenStack Demo</h1>
+
+        <p>Demo of OpenStack integration with EOS</p>
+
+        <button type="button" class="btn btn-lg btn-primary"
+        ng-click="itemClicked()">Run Test</button>
+
+          <div class="table-responsive">
+          <h2>
+        <table class="table text-left">
+        <tr class="warning">
+        <th>
+        Demo Component
+        </th>
+        <th>
+        Status
+        </th>
+        </tr>
+        <tr>
+        <td>Create network in Neutron</td>
+        <td><span class="netstatus label label-default"
+        ng-class="netlabel"><span ng-bind="netresult"></span></span></td>
+        </tr>   
+        <tr>
+        <td>Create subnet in Neutron</td>
+        <td><span class="subnetstatus label label-default"
+        ng-class="subnetlabel"><span ng-bind="subnetresult"></span></span></td>
+        </tr>
+        <tr>
+        <td>Create Nova VMs</td>
+        <td><span class="computestatus label label-default"
+        ng-class="computelabel"><span ng-bind="computeresult"></span></span></td>
+        </tr>
+        <tr>
+        <td>Test EOS for entries</td>
+        <td><span class="eosstatus label label-default"
+                  ng-class="eoslabel"><span ng-bind="eosresult"></span></span>
+        </td>
+        </tr>
+        <tr>
+        <td>Reset Demo</td>
+        <td><span class="resetstatus label label-default"
+                  ng-class="resetlabel"><span ng-bind="resetresult"></span></span>
+        </td>
+        </tr>
+        </table>
+        </h2>
+
+        </div>
+        <p class="text-left">
+        What is being tested:
+        <ul class="text-left">
+        <li>Create a Neutron network</li>
+    
+        </ul>
+        </p>
+    </div>
