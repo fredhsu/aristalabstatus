@@ -1,6 +1,6 @@
 [
 {
-    "Hostname": "bspine1",
+    "Hostname": "172.28.171.97",
     "Username": "admin",
     "Password": "admin",
     "Ssl": true,
@@ -10,7 +10,7 @@
     "Uptime": 0
 },
 {
-    "Hostname": "bspine2",
+    "Hostname": "172.28.171.98",
     "Username": "fredlhsu",
     "Password": "arista",
     "Ssl": true,
@@ -20,7 +20,7 @@
     "Uptime": 0
 },
 {
-    "Hostname": "bleaf1",
+    "Hostname": "172.28.171.101",
     "Username": "admin",
     "Password": "admin",
     "Ssl": true,
@@ -30,7 +30,7 @@
     "Uptime": 0
 },
 {
-    "Hostname": "bleaf2",
+    "Hostname": "172.28.171.102",
     "Username": "admin",
     "Password": "admin",
     "Ssl": true,
@@ -40,7 +40,7 @@
     "Uptime": 0
 },
 {
-    "Hostname": "bleaf3",
+    "Hostname": "172.28.171.103",
     "Username": "admin",
     "Password": "admin",
     "Ssl": true,
@@ -50,7 +50,7 @@
     "Uptime": 0
 },
 {
-    "Hostname": "bleaf5",
+    "Hostname": "172.28.168.114",
     "Username": "admin",
     "Password": "admin",
     "Ssl": true,
@@ -60,7 +60,17 @@
     "Uptime": 0
 },
 {
-    "Hostname": "bleaf6",
+    "Hostname": "172.28.168.115",
+    "Username": "admin",
+    "Password": "admin",
+    "Ssl": true,
+    "MgmtIp": "1.1.1.1",
+    "Reachable": true,
+    "ConfigCorrect": true,
+    "Uptime": 0
+},
+{
+    "Hostname": "172.28.168.116",
     "Username": "admin",
     "Password": "admin",
     "Ssl": true,

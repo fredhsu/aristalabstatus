@@ -212,7 +212,7 @@ func switchesHandler(w http.ResponseWriter, r *http.Request) {
 
 	c1 := genSwitches(switches)
 	c2 := getVersion(c1)
-	c2 = getLldpNeighbors(c2)
+	//c2 = getLldpNeighbors(c2)
 	output := []EosNode{}
 
 	for i := 0; i < len(switches); i++ {
@@ -418,7 +418,7 @@ func openstackHandler(w http.ResponseWriter, r *http.Request) {
 		_, net := lab.FindNetwork(nc, netname)
 		_, compute := lab.FindCompute(cc, vmname)
 		dc := lab.DeleteCompute(cc, compute.ID)
-		time.Sleep(5 * time.Second)
+		time.Sleep(8 * time.Second)
 		dn := lab.DeleteNetwork(nc, net.ID)
 		if dn && dc {
 			s = DemoStatus{Working: true, Error: ""}

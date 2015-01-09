@@ -131,7 +131,6 @@ app.controller('OpenstackController', function($scope, $log, $timeout, NeutronNe
                 }
             });
             $timeout(ComputeFunc, 1000);
-
             return
         }
 
@@ -160,6 +159,7 @@ app.controller('OpenstackController', function($scope, $log, $timeout, NeutronNe
                     $scope.eosresult = 'Failed';
                 }
             });
+            $timeout(ResetFunc, 1000);
         }
 
         function ResetFunc() {
@@ -175,9 +175,9 @@ app.controller('OpenstackController', function($scope, $log, $timeout, NeutronNe
             });
         }
         NetFunc();
-
     };
 });
+
 app.config(function($routeProvider, $httpProvider) {
     $httpProvider.defaults.useXDomain = true;
     delete $httpProvider.defaults.headers.common['X-Requested-With'];
@@ -200,5 +200,4 @@ app.config(function($routeProvider, $httpProvider) {
             templateUrl: 'openstack.html',
             controller: 'OpenstackController'
         })
-
 });
