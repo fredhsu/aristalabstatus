@@ -402,7 +402,7 @@ func openstackHandler(w http.ResponseWriter, r *http.Request) {
 
 		_, net := lab.FindNetwork(nclient, netname)
 		_, compute := lab.FindCompute(cc, vmname)
-		url := "https://admin:admin@bleaf1/command-api/"
+		url := "https://admin:admin@172.28.171.101/command-api/"
 
 		tn := lab.CheckNeutronEOS(url, net.ID)
 		tc := lab.CheckNovaEOS(url, compute.ID)
