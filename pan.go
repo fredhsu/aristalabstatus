@@ -36,7 +36,7 @@ func PanResume() {
 
 func SendDatagram(msg string) {
 	DemoUdpPort := "9515"
-	conn, err := net.Dial("udp", "directflow-7050.aristanetworks.com:"+DemoUdpPort)
+	conn, err := net.Dial("udp", "172.22.28.95:"+DemoUdpPort)
 	if err != nil {
 		// handle error
 	}
@@ -50,7 +50,7 @@ func PanClear() {
 
 func FetchFlows() []eapi.Flow {
 	cmds := []string{"show directflow flows"}
-	url := "http://eapi:eapi@directflow-7050.aristanetworks.com/command-api"
+	url := "http://eapi:eapi@172.22.28.95/command-api"
 	data := eapi.RawCall(url, cmds, "json")
 
 	var jsonresp eapi.RawJsonRpcResponse
@@ -94,7 +94,7 @@ func RemoveAllFlows(prefix string) []eapi.Flow {
 			log.Println("Flow match: " + flow.Name)
 		}
 	}
-	url := "http://eapi:eapi@directflow-7050.aristanetworks.com/command-api"
+	url := "http://eapi:eapi@172.22.28.95/command-api"
 	response := eapi.Call(url, cmds, "json")
 	log.Println(response.Result[0])
 	// Check response for success
