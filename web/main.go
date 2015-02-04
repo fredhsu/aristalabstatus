@@ -353,27 +353,26 @@ func vMotionHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	method := vars["method"]
 	log.WithFields(log.Fields{
-		"service": "openstack",
+		"service": "vmotion",
 		"method":  method,
 	}).Info("Starting Test")
 	var s DemoStatus
-	c := GetClient()
-	folders := GetFolders(c)
-	vm := GetVm("vxlan-vm1", folders, c)
+	c := lab.GetClient()
+	folders := lab.GetFolders(c)
+	vm := lab.GetVm("vxlan-vm1", folders, c)
 	url1 := "https://admin:admin@172.28.171.101/command-api/"
 	url2 := "https://admin:admin@172.28.171.102/command-api/"
-
 	switch method {
 	case "vmotion1":
 		//vMotion to leaf1
-		dHost, pool := GetHost(4, folders, c) // Use 4 to move to .146 -- leaf1
-		MigrateVm(vm, pool, &dHost, c)
+		dHost, pool := lab.GetHost(4, folders, c) // Use 4 to move to .146 -- leaf1
+		lab.MigrateVm(vm, pool, &dHost, c)
 		// What to test for clean migration?
 		s = DemoStatus{Working: true, Error: ""}
 	case "test1":
 		// Test VM on leaf1 and not on leaf2
-		l1 := VmtracerTest("vxlan-vm1", url1)
-		l2 := VmtracerTest("vxlan-vm1", url2)
+		l1 := lab.VmtracerTest("vxlan-vm1", url1)
+		l2 := lab.VmtracerTest("vxlan-vm1", url2)
 		if l1 && !l2 {
 			s = DemoStatus{Working: true, Error: ""}
 		} else {
@@ -381,14 +380,14 @@ func vMotionHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	case "vmotion2":
 		//vMotion to leaf2
-		dHost, pool := GetHost(7, folders, c) // Use 7 to move to .150 -- leaf2
-		MigrateVm(vm, pool, &dHost, c)
+		dHost, pool := lab.GetHost(7, folders, c) // Use 7 to move to .150 -- leaf2
+		lab.MigrateVm(vm, pool, &dHost, c)
 		// What to test for clean migration?
 		s = DemoStatus{Working: true, Error: ""}
 	case "test2":
 		// Test VM on leaf2 and not on leaf1
-		l1 := VmtracerTest("vxlan-vm1", url1)
-		l2 := VmtracerTest("vxlan-vm1", url2)
+		l1 := lab.VmtracerTest("vxlan-vm1", url1)
+		l2 := lab.VmtracerTest("vxlan-vm1", url2)
 		if !l1 && l2 {
 			s = DemoStatus{Working: true, Error: ""}
 		} else {
@@ -524,12 +523,8 @@ func main() {
 	r.HandleFunc("/api/openstack/{method}", openstackHandler)
 	r.HandleFunc("/panweb", panWebHandler)
 	r.HandleFunc("/api/vmotion/{method}", vMotionHandler)
-	// http.HandleFunc("/panweb", func(w http.ResponseWriter, r *http.Request) {
-	// 	panWebHandler(w, r)
-	// })
-	// r.HandleFunc("/panweb", makeHandler(panWebHandler, switches))
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(".")))
 	http.Handle("/", r)
 	// r.Handle("/", http.FileServer(http.Dir(".")))
-	http.ListenAndServe(":8081", r)
+	http.ListenAndServe(":8082", r)
 }

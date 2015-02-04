@@ -29,6 +29,19 @@ app.factory("StackReset", function($resource) {
     return $resource('/api/openstack/reset', {})
 });
 
+app.factory("Vmotion1", function($resource) {
+    return $resource('/api/vmotion/vmotion1', {})
+});
+app.factory("Vmotion2", function($resource) {
+    return $resource('/api/vmotion/vmotion2', {})
+});
+app.factory("VmotionTest1", function($resource) {
+    return $resource('/api/vmotion/test1', {})
+});
+app.factory("VmotionTest2", function($resource) {
+    return $resource('/api/vmotion/test2', {})
+});
+
 app.controller('SwitchesController', function($scope, Get) {
     Get.query(function(data) {
         $scope.test = data;

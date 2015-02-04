@@ -1,4 +1,4 @@
-package main
+package aristalabstatus
 
 import (
 	"fmt"
@@ -42,6 +42,7 @@ func GetVm(name string, folders *govmomi.DatacenterFolders, c *govmomi.Client) m
 			return vm
 		}
 	}
+	fmt.Println("Fetched vm: ", vm)
 	return vm
 }
 
@@ -102,7 +103,7 @@ func main() {
 	dHost, pool := GetHost(4, folders, c) // Use 4 to move to .146
 	MigrateVm(vm, pool, &dHost, c)
 	// Wait for vMotion to finish
-	time.Sleep(10 * time.Second) // Wait for compute nodes to spin up
+	time.Sleep(10 * time.Second) // Wait for vMotion to finish
 	url := "https://admin:admin@172.28.171.101/command-api/"
 	result := VmtracerTest("vxlan-vm1", url)
 	fmt.Printf("VM is on leaf 1: %t", result)
@@ -115,7 +116,7 @@ func main() {
 	dHost, pool = GetHost(7, folders, c) // Use 7 to move to .150
 	MigrateVm(vm, pool, &dHost, c)
 	url = "https://admin:admin@172.28.171.101/command-api/"
-	time.Sleep(10 * time.Second) // Wait for compute nodes to spin up
+	time.Sleep(10 * time.Second) // Wait for vMotion to finish
 
 	result = VmtracerTest("vxlan-vm1", url)
 	fmt.Println(result)
