@@ -1,0 +1,47 @@
+  <div class="jumbotron text-center">
+        <h1>VMtracer/VXLAN Demo</h1>
+
+        <p>Demo of VMtracer</p>
+
+        <button type="button" class="btn btn-lg btn-primary"
+        ng-click="itemClicked()">Run Test</button>
+
+          <div class="table-responsive">
+          <h2>
+        <table class="table text-left">
+        <tr class="warning">
+        <th>
+        Demo Component
+        </th>
+        <th>
+        Status
+        </th>
+        </tr>
+        <tr>
+        <td>vMotion to server 146</td>
+        <td><span class="vmotion1status label label-default"
+        ng-class="vmotion1label"><span ng-bind="vmotion1result"></span></span></td>
+        </tr>   
+        <tr>
+        <td>Check VMtracer</td>
+        <td><span class="test1status label label-default"
+        ng-class="test1label"><span ng-bind="test1result"></span></span></td>
+        </tr>
+        <tr>
+        <td>vMotion to server 150</td>
+        <td><span class="vmotion2status label label-default"
+        ng-class="vmotion2label"><span ng-bind="vmotion2result"></span></span></td>
+        </tr>
+        <tr>
+        <td>Check VMtracer</td>
+        <td><span class="test2status label label-default"
+                  ng-class="test2label"><span ng-bind="test2result"></span></span>
+        </td>
+        </tr>
+        </table>
+        </h2>
+
+        </div>
+        <p class="text-left">
+        </p>
+    </div>

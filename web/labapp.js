@@ -98,6 +98,81 @@ app.controller('PanController', function($scope, $log, PanTest, PanWebTest) {
     };
 });
 
+app.controller('VmotionController', function($scope, $log, $timeout, Vmotion1, Vmotion2, VmotionTest1, VmotionTest2) {
+    $scope.vmotion1result = 'No Test';
+    $scope.vmotion2result = 'No Test';
+    $scope.test1result = 'No Test';
+    $scope.test2result = 'No Test';
+    $scope.itemClicked = function() {
+        $scope.vmotion1label = "label-info";
+        $scope.test1label = "label-info";
+        $scope.vmotion2label = "label-info";
+        $scope.test2label = "label-info";
+
+        $scope.vmotion1result = 'Running';
+        $scope.test1result = 'Running';
+        $scope.vmotion2label = 'Running';
+        $scope.test2result = 'Running';
+
+        function VM1Func() {
+            Vmotion1.query(function(data) {
+                if (data[0].Working) {
+                    $scope.vmotion1label = "label-success";
+                    $scope.vmotion1result = 'Passed';
+                } else {
+                    $scope.vmotion1label = "label-danger";
+                    $scope.vmotion1result = 'Failed';
+                }
+            });
+            $timeout(Test1Func, 1000);
+            return
+        }
+
+        function Test1Func() {
+            VmotionTest1.query(function(data) {
+                $log.log(data);
+                if (data[0].Working) {
+                    $scope.test1label = "label-success";
+                    $scope.test1result = 'Passed';
+                } else {
+                    $scope.test1label = "label-danger";
+                    $scope.test1result = 'Failed';
+                }
+            });
+            $timeout(VM2Func, 1000);
+            return
+        }
+
+        function VM2Func() {
+            NovaCompute.query(function(data) {
+                $log.log(data);
+                if (data[0].Working) {
+                    $scope.vmotion2label = "label-success";
+                    $scope.vmotion2result = 'Passed';
+                } else {
+                    $scope.vmotion2label = "label-danger";
+                    $scope.vmotion2result = 'Failed';
+                }
+            });
+            $timeout(Test2Func, 5000);
+        }
+
+        function Test2Func() {
+            StackEos.query(function(data) {
+                $log.log(data);
+                if (data[0].Working) {
+                    $scope.test2label = "label-success";
+                    $scope.test2result = 'Passed';
+                } else {
+                    $scope.test2label = "label-danger";
+                    $scope.test2result = 'Failed';
+                }
+            });
+        }
+        VM1Func();
+    };
+});
+
 app.controller('OpenstackController', function($scope, $log, $timeout, NeutronNet, NeutronSubnet, NovaCompute, StackEos, StackReset) {
     $scope.netresult = 'No Test';
     $scope.subnetresult = 'No Test';
@@ -190,7 +265,6 @@ app.controller('OpenstackController', function($scope, $log, $timeout, NeutronNe
         NetFunc();
     };
 });
-
 app.config(function($routeProvider, $httpProvider) {
     $httpProvider.defaults.useXDomain = true;
     delete $httpProvider.defaults.headers.common['X-Requested-With'];
@@ -212,5 +286,9 @@ app.config(function($routeProvider, $httpProvider) {
         .when('/openstack', {
             templateUrl: 'openstack.html',
             controller: 'OpenstackController'
+        })
+                .when('/vmotion', {
+            templateUrl: 'vmotion.html',
+            controller: 'VmotionController'
         })
 });

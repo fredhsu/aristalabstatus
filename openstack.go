@@ -77,14 +77,14 @@ func CreateCompute(client *gophercloud.ServiceClient, name string, netid string)
 	if netid == "" {
 		opts = servers.CreateOpts{
 			Name:      name,
-			ImageRef:  "7bc33401-17c4-4755-80d7-49ce1bf7d53d",
+			ImageRef:  "3be14224-6e23-4928-9666-c3b812cf8ae3",
 			FlavorRef: "42",
 		}
 	} else {
 		net := servers.Network{UUID: netid}
 		opts = servers.CreateOpts{
 			Name:      name,
-			ImageRef:  "7bc33401-17c4-4755-80d7-49ce1bf7d53d",
+			ImageRef:  "3be14224-6e23-4928-9666-c3b812cf8ae3",
 			FlavorRef: "42",
 			Networks:  []servers.Network{net},
 		}
