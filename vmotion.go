@@ -7,7 +7,6 @@ import (
 
 	"github.com/fredhsu/eapigo"
 	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -79,7 +78,7 @@ func MigrateVm(vm mo.VirtualMachine, pool *types.ManagedObjectReference, host *t
 		Pool:     pool,
 		Host:     host,
 		Priority: types.VirtualMachineMovePriorityDefaultPriority}
-	methods.MigrateVM_Task(c, &mvmtask)
+	//methods.MigrateVM_Task(c, &mvmtask)
 }
 
 // Test if VM named vm shows up on switch at url
@@ -101,7 +100,7 @@ func main() {
 	vm := GetVm("vxlan-vm1", folders, c)
 	// vMotion to .146 verify
 	dHost, pool := GetHost(4, folders, c) // Use 4 to move to .146
-	MigrateVm(vm, pool, &dHost, c)
+	// MigrateVm(vm, pool, &dHost, c)
 	// Wait for vMotion to finish
 	time.Sleep(10 * time.Second) // Wait for vMotion to finish
 	url := "https://admin:admin@172.28.171.101/command-api/"
