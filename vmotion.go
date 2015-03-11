@@ -73,11 +73,11 @@ func GetClient() *govmomi.Client {
 }
 
 func MigrateVm(vm mo.VirtualMachine, pool *types.ManagedObjectReference, host *types.ManagedObjectReference, c *govmomi.Client) {
-	mvmtask := types.MigrateVM_Task{
-		This:     vm.Reference(),
-		Pool:     pool,
-		Host:     host,
-		Priority: types.VirtualMachineMovePriorityDefaultPriority}
+	//mvmtask := types.MigrateVM_Task{
+	//This:     vm.Reference(),
+	//Pool:     pool,
+	//Host:     host,
+	//Priority: types.VirtualMachineMovePriorityDefaultPriority}
 	//methods.MigrateVM_Task(c, &mvmtask)
 }
 
